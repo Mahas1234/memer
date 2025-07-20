@@ -14,10 +14,12 @@ import { useToast } from '@/hooks/use-toast';
 import { ShareButtons } from '@/components/share-buttons';
 import { MemeCard } from '@/components/meme-card';
 import { Loader } from '@/components/loader';
-import { Download, Laugh, RefreshCw, Sparkles, MessageCircleHeart, Image as ImageIcon, Link, Upload, Newspaper } from 'lucide-react';
+import { Download, Laugh, RefreshCw, Sparkles, MessageCircleHeart, Image as ImageIcon, Link, Upload, Newspaper, Wand2, FileInput } from 'lucide-react';
 import Image from 'next/image';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Input } from '@/components/ui/input';
+import { ThemeToggle } from '@/components/theme-toggle';
+import { Textarea } from './ui/textarea';
 
 const WavyText = ({ text }: { text: string }) => (
   <h1 className="text-4xl md:text-5xl font-headline font-bold text-primary tracking-tighter">
@@ -40,6 +42,7 @@ export function PageClient() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [inputType, setInputType] = useState<MemeInputType>('headline');
   const [imageUrl, setImageUrl] = useState('');
+  const [customHeadline, setCustomHeadline] = useState('');
   const [localFile, setLocalFile] = useState<File | null>(null);
   const [localFilePreview, setLocalFilePreview] = useState<string | null>(null);
 
@@ -74,19 +77,40 @@ export function PageClient() {
     }
   }, [loadHeadlines]);
 
-  const handleGenerateMeme = useCallback(async () => {
+  const handleGenerateMeme = useCallback(async (options?: { surprise?: boolean }) => {
     let context: string | null = null;
     let baseImageUrl: string | null = null;
     let headlineText: string = "User-provided image";
     let aiHint = 'custom image';
+    let currentTone = tone;
 
-    if (inputType === 'headline') {
+    if (options?.surprise) {
+      const randomHeadline = headlines[Math.floor(Math.random() * headlines.length)];
+      context = randomHeadline.title;
+      headlineText = randomHeadline.title;
+      const template = getRandomMemeTemplate();
+      baseImageUrl = template.url;
+      aiHint = template.hint;
+      const tones: MemeTone[] = ['funny', 'sarcastic', 'inspirational', 'whimsical'];
+      currentTone = tones[Math.floor(Math.random() * tones.length)];
+      setTone(currentTone);
+    } else if (inputType === 'headline') {
       if (!selectedHeadline) {
         toast({ variant: 'destructive', title: 'Error', description: 'Please select a headline first.' });
         return;
       }
       context = selectedHeadline.title;
       headlineText = selectedHeadline.title;
+      const template = getRandomMemeTemplate();
+      baseImageUrl = template.url;
+      aiHint = template.hint;
+    } else if (inputType === 'custom') {
+      if (!customHeadline) {
+        toast({ variant: 'destructive', title: 'Error', description: 'Please enter a custom headline.' });
+        return;
+      }
+      context = customHeadline;
+      headlineText = customHeadline;
       const template = getRandomMemeTemplate();
       baseImageUrl = template.url;
       aiHint = template.hint;
@@ -112,7 +136,7 @@ export function PageClient() {
     setGeneratedMeme(null);
 
     try {
-      const result = await generateMemeCaption({ context, tone });
+      const result = await generateMemeCaption({ context, tone: currentTone });
       const newMeme: Meme = {
         id: new Date().toISOString(),
         imageUrl: baseImageUrl,
@@ -136,7 +160,7 @@ export function PageClient() {
     } finally {
       setIsGenerating(false);
     }
-  }, [selectedHeadline, tone, memeHistory, toast, inputType, imageUrl, localFile, localFilePreview]);
+  }, [selectedHeadline, tone, memeHistory, toast, inputType, imageUrl, localFile, localFilePreview, customHeadline, headlines]);
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -227,7 +251,10 @@ export function PageClient() {
 
   return (
     <div className="container mx-auto px-4 py-8">
-      <header className="text-center mb-8 md:mb-12">
+      <header className="text-center mb-8 md:mb-12 relative">
+        <div className="absolute top-0 right-0">
+          <ThemeToggle />
+        </div>
         <WavyText text="Memer AI" />
         <p className="font-body text-lg text-muted-foreground mt-2">Generate memes with the power of AI.</p>
       </header>
@@ -240,8 +267,9 @@ export function PageClient() {
             </CardHeader>
             <CardContent>
               <Tabs value={inputType} onValueChange={(value) => setInputType(value as MemeInputType)} className="w-full">
-                <TabsList className="grid w-full grid-cols-3">
+                <TabsList className="grid w-full grid-cols-4">
                   <TabsTrigger value="headline"><Newspaper className="mr-2 h-4 w-4" />Headline</TabsTrigger>
+                  <TabsTrigger value="custom"><FileInput className="mr-2 h-4 w-4" />Custom</TabsTrigger>
                   <TabsTrigger value="url"><Link className="mr-2 h-4 w-4" />URL</TabsTrigger>
                   <TabsTrigger value="upload"><Upload className="mr-2 h-4 w-4" />Upload</TabsTrigger>
                 </TabsList>
@@ -264,7 +292,8 @@ export function PageClient() {
                                 {headlines.map((headline, index) => (
                                   <CarouselItem key={index} className="md:basis-1/2 lg:basis-full">
                                     <div className="p-1">
-                                      <Card className={`h-40 flex flex-col justify-center p-6 border-2 transition-colors cursor-pointer ${selectedHeadline?.title === headline.title ? 'border-primary shadow-lg' : 'hover:border-primary/50'}`}>
+                                      <Card className={`h-40 flex flex-col justify-center p-6 border-2 transition-colors cursor-pointer ${selectedHeadline?.title === headline.title ? 'border-primary shadow-lg' : 'hover:border-primary/50'}`}
+                                       onClick={() => setSelectedHeadline(headline)}>
                                         <p className="font-body font-bold text-lg">{headline.title}</p>
                                         <p className="font-body text-sm text-muted-foreground mt-2">{headline.source}</p>
                                       </Card>
@@ -282,6 +311,13 @@ export function PageClient() {
                           </Button>
                         </CardContent>
                     </Card>
+                </TabsContent>
+                <TabsContent value="custom" className="mt-4">
+                   <div className="space-y-2">
+                    <Label htmlFor="customHeadline">Custom Headline</Label>
+                    <Textarea id="customHeadline" placeholder="e.g., Man discovers his cat is a wanted jewel thief" value={customHeadline} onChange={e => setCustomHeadline(e.target.value)} />
+                    <p className="text-xs text-muted-foreground">The AI will generate a meme from a random template based on your text.</p>
+                  </div>
                 </TabsContent>
                 <TabsContent value="url" className="mt-4">
                   <div className="space-y-2">
@@ -311,6 +347,7 @@ export function PageClient() {
                     { value: 'funny', label: 'Funny', icon: <Laugh className="w-4 h-4 mr-2"/> },
                     { value: 'sarcastic', label: 'Sarcastic', icon: <MessageCircleHeart className="w-4 h-4 mr-2"/> },
                     { value: 'inspirational', label: 'Inspirational', icon: <Sparkles className="w-4 h-4 mr-2"/> },
+                    { value: 'whimsical', label: 'Whimsical', icon: <Wand2 className="w-4 h-4 mr-2"/> }
                   ].map(item => (
                     <div key={item.value}>
                       <RadioGroupItem value={item.value} id={item.value} className="peer sr-only" />
@@ -323,10 +360,16 @@ export function PageClient() {
               </RadioGroup>
             </CardContent>
           </Card>
-           <Button onClick={handleGenerateMeme} size="lg" className="w-full font-bold text-lg animate-pulsating-glow" disabled={isGenerating}>
-              <Sparkles className="mr-2" />
-              {isGenerating ? 'Generating...' : 'Generate Meme'}
-           </Button>
+          <div className="flex flex-col sm:flex-row gap-4">
+            <Button onClick={() => handleGenerateMeme()} size="lg" className="w-full font-bold text-lg animate-pulsating-glow" disabled={isGenerating}>
+                <Sparkles className="mr-2" />
+                {isGenerating ? 'Generating...' : 'Generate Meme'}
+            </Button>
+            <Button onClick={() => handleGenerateMeme({ surprise: true })} size="lg" variant="secondary" className="w-full font-bold text-lg" disabled={isGenerating || isLoading}>
+                <Wand2 className="mr-2" />
+                Surprise Me!
+            </Button>
+          </div>
         </div>
         <div className="mt-8 lg:mt-0" ref={memeDisplayRef}>
           <Card className="sticky top-8 shadow-xl">
@@ -384,6 +427,10 @@ export function PageClient() {
           </div>
         </section>
       )}
+
+      <footer className="text-center mt-16 py-6 border-t">
+        <p className="text-muted-foreground font-body">Made with vibes by Mahas ❤️</p>
+      </footer>
     </div>
   );
 }
