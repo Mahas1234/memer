@@ -207,7 +207,7 @@ export function PageClient() {
               {!isLoading && headlines.length > 0 && (
                 <Carousel
                   opts={{ align: 'start' }}
-                  onApi={(api) => {
+                  setApi={(api) => {
                     api?.on('select', () => setSelectedHeadline(headlines[api.selectedScrollSnap()]));
                   }}
                   className="w-full"
