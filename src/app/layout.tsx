@@ -4,8 +4,8 @@ import { cn } from '@/lib/utils';
 import { Toaster } from "@/components/ui/toaster"
 
 export const metadata: Metadata = {
-  title: 'MemeStream AI',
-  description: 'Generate memes from news headlines with AI',
+  title: 'Memer AI',
+  description: 'Generate memes from news headlines or your own images with AI',
 };
 
 export default function RootLayout({

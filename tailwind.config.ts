@@ -91,8 +91,8 @@ export default {
           },
         },
         'pulsating-glow': {
-          '0%, 100%': { boxShadow: '0 0 10px 0px hsl(var(--primary) / 0.7)' },
-          '50%': { boxShadow: '0 0 20px 5px hsl(var(--primary) / 0.3)' },
+          '0%, 100%': { boxShadow: '0 0 10px 0px hsl(var(--primary) / 0.7)', transform: 'scale(1)' },
+          '50%': { boxShadow: '0 0 20px 5px hsl(var(--primary) / 0.3)', transform: 'scale(1.02)' },
         },
         'fade-in-zoom': {
           '0%': { opacity: '0', transform: 'scale(0.95)' },
@@ -109,15 +109,20 @@ export default {
             '60%': { transform: 'translateY(-1px)' },
             '80%': { transform: 'translateY(1px)' },
             '100%': { transform: 'translateY(0px)' },
+        },
+        'bounce': {
+          '0%, 100%': { transform: 'translateY(0)' },
+          '50%': { transform: 'translateY(-10px)' },
         }
       },
       animation: {
         'accordion-down': 'accordion-down 0.2s ease-out',
         'accordion-up': 'accordion-up 0.2s ease-out',
-        'pulsating-glow': 'pulsating-glow 2s ease-in-out infinite',
+        'pulsating-glow': 'pulsating-glow 2.5s ease-in-out infinite',
         'fade-in-zoom': 'fade-in-zoom 0.5s ease-out forwards',
         'fade-slide-up': 'fade-slide-up 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards',
-        'wavy': 'wavy 1s ease-in-out infinite'
+        'wavy': 'wavy 1s ease-in-out infinite',
+        'bounce': 'bounce 0.5s ease-in-out',
       },
     },
   },

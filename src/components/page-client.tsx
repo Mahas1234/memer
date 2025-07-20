@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import type { NewsHeadline, Meme, MemeTone } from '@/lib/types';
+import type { NewsHeadline, Meme, MemeTone, MemeInputType } from '@/lib/types';
 import { generateMemeCaption } from '@/ai/flows/generate-meme-caption';
 import { fetchTrendingHeadlines } from '@/lib/news-api';
 import { getRandomMemeTemplate } from '@/lib/meme-templates';
@@ -14,13 +14,15 @@ import { useToast } from '@/hooks/use-toast';
 import { ShareButtons } from '@/components/share-buttons';
 import { MemeCard } from '@/components/meme-card';
 import { Loader } from '@/components/loader';
-import { Download, Laugh, RefreshCw, Sparkles, MessageCircleHeart, Wand2 } from 'lucide-react';
+import { Download, Laugh, RefreshCw, Sparkles, MessageCircleHeart, Image as ImageIcon, Link, Upload, Newspaper } from 'lucide-react';
 import Image from 'next/image';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Input } from '@/components/ui/input';
 
 const WavyText = ({ text }: { text: string }) => (
   <h1 className="text-4xl md:text-5xl font-headline font-bold text-primary tracking-tighter">
     {text.split('').map((char, index) => (
-      <span key={index} className="inline-block wavy-char" style={{ animationDelay: `${index * 50}ms` }}>
+      <span key={index} className="inline-block" style={{ animation: 'bounce 1s ease-in-out', animationDelay: `${index * 50}ms`, animationIterationCount: 1 }}>
         {char === ' ' ? '\u00A0' : char}
       </span>
     ))}
@@ -36,8 +38,14 @@ export function PageClient() {
   const [memeHistory, setMemeHistory] = useState<Meme[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [inputType, setInputType] = useState<MemeInputType>('headline');
+  const [imageUrl, setImageUrl] = useState('');
+  const [localFile, setLocalFile] = useState<File | null>(null);
+  const [localFilePreview, setLocalFilePreview] = useState<string | null>(null);
+
   const { toast } = useToast();
   const memeDisplayRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const loadHeadlines = useCallback(async () => {
     setIsLoading(true);
@@ -67,24 +75,51 @@ export function PageClient() {
   }, [loadHeadlines]);
 
   const handleGenerateMeme = useCallback(async () => {
-    if (!selectedHeadline) {
-      toast({ variant: 'destructive', title: 'Error', description: 'Please select a headline first.' });
-      return;
+    let context: string | null = null;
+    let baseImageUrl: string | null = null;
+    let headlineText: string = "User-provided image";
+    let aiHint = 'custom image';
+
+    if (inputType === 'headline') {
+      if (!selectedHeadline) {
+        toast({ variant: 'destructive', title: 'Error', description: 'Please select a headline first.' });
+        return;
+      }
+      context = selectedHeadline.title;
+      headlineText = selectedHeadline.title;
+      const template = getRandomMemeTemplate();
+      baseImageUrl = template.url;
+      aiHint = template.hint;
+    } else if (inputType === 'url') {
+      if (!imageUrl || !imageUrl.startsWith('http')) {
+        toast({ variant: 'destructive', title: 'Error', description: 'Please enter a valid image URL.'});
+        return;
+      }
+      context = "an image provided by URL";
+      baseImageUrl = imageUrl;
+    } else if (inputType === 'upload') {
+        if(!localFile || !localFilePreview) {
+            toast({ variant: 'destructive', title: 'Error', description: 'Please upload an image file.'});
+            return;
+        }
+        context = "an uploaded image";
+        baseImageUrl = localFilePreview;
     }
+
+    if (!context || !baseImageUrl) return;
 
     setIsGenerating(true);
     setGeneratedMeme(null);
 
     try {
-      const result = await generateMemeCaption({ headline: selectedHeadline.title, tone });
-      const template = getRandomMemeTemplate();
+      const result = await generateMemeCaption({ context, tone });
       const newMeme: Meme = {
         id: new Date().toISOString(),
-        imageUrl: template.url,
+        imageUrl: baseImageUrl,
         caption: result.caption,
-        headline: selectedHeadline.title,
+        headline: headlineText,
         createdAt: new Date().toISOString(),
-        aiHint: template.hint,
+        aiHint,
       };
       setGeneratedMeme(newMeme);
 
@@ -101,15 +136,19 @@ export function PageClient() {
     } finally {
       setIsGenerating(false);
     }
-  }, [selectedHeadline, tone, memeHistory, toast]);
+  }, [selectedHeadline, tone, memeHistory, toast, inputType, imageUrl, localFile, localFilePreview]);
 
-  useEffect(() => {
-    if (selectedHeadline) {
-      handleGenerateMeme();
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      setLocalFile(file);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setLocalFilePreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedHeadline, tone]);
-  
+  };
 
   const handleDownload = () => {
     const memeNode = document.getElementById('meme-to-download');
@@ -175,7 +214,7 @@ export function PageClient() {
       }
 
       const link = document.createElement('a');
-      link.download = `memestream-ai-${Date.now()}.png`;
+      link.download = `memer-ai-${Date.now()}.png`;
       link.href = canvas.toDataURL('image/png');
       document.body.appendChild(link);
       link.click();
@@ -189,46 +228,76 @@ export function PageClient() {
   return (
     <div className="container mx-auto px-4 py-8">
       <header className="text-center mb-8 md:mb-12">
-        <WavyText text="MemeStream AI" />
-        <p className="font-body text-lg text-muted-foreground mt-2">Turn today's news into tomorrow's memes.</p>
-        <Button onClick={loadHeadlines} className="mt-4 animate-pulsating-glow" disabled={isLoading}>
-          <RefreshCw className={`mr-2 h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
-          {isLoading ? 'Fetching News...' : 'Refresh News'}
-        </Button>
+        <WavyText text="Memer AI" />
+        <p className="font-body text-lg text-muted-foreground mt-2">Generate memes with the power of AI.</p>
       </header>
       
       <div className="grid grid-cols-1 lg:grid-cols-2 lg:gap-12">
         <div className="space-y-8">
           <Card>
             <CardHeader>
-              <CardTitle className="font-headline text-2xl">1. Pick a headline</CardTitle>
+              <CardTitle className="font-headline text-2xl">1. Choose your source</CardTitle>
             </CardHeader>
             <CardContent>
-              {isLoading && <div className="text-center p-8 font-body">Loading headlines...</div>}
-              {!isLoading && headlines.length > 0 && (
-                <Carousel
-                  opts={{ align: 'start' }}
-                  setApi={(api) => {
-                    api?.on('select', () => setSelectedHeadline(headlines[api.selectedScrollSnap()]));
-                  }}
-                  className="w-full"
-                >
-                  <CarouselContent>
-                    {headlines.map((headline, index) => (
-                      <CarouselItem key={index} className="md:basis-1/2 lg:basis-full">
-                        <div className="p-1">
-                          <Card className={`h-40 flex flex-col justify-center p-6 border-2 transition-colors ${selectedHeadline?.title === headline.title ? 'border-primary' : ''}`}>
-                            <p className="font-body font-bold text-lg">{headline.title}</p>
-                            <p className="font-body text-sm text-muted-foreground mt-2">{headline.source}</p>
-                          </Card>
-                        </div>
-                      </CarouselItem>
-                    ))}
-                  </CarouselContent>
-                  <CarouselPrevious className="hidden sm:flex" />
-                  <CarouselNext className="hidden sm:flex" />
-                </Carousel>
-              )}
+              <Tabs value={inputType} onValueChange={(value) => setInputType(value as MemeInputType)} className="w-full">
+                <TabsList className="grid w-full grid-cols-3">
+                  <TabsTrigger value="headline"><Newspaper className="mr-2 h-4 w-4" />Headline</TabsTrigger>
+                  <TabsTrigger value="url"><Link className="mr-2 h-4 w-4" />URL</TabsTrigger>
+                  <TabsTrigger value="upload"><Upload className="mr-2 h-4 w-4" />Upload</TabsTrigger>
+                </TabsList>
+                <TabsContent value="headline" className="mt-4">
+                    <Card className="border-dashed">
+                        <CardHeader>
+                           <CardTitle className="flex items-center"><Newspaper className="mr-2"/>Trending Headlines</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          {isLoading && <div className="text-center p-8 font-body">Loading headlines...</div>}
+                          {!isLoading && headlines.length > 0 && (
+                            <Carousel
+                              opts={{ align: 'start' }}
+                              setApi={(api) => {
+                                if(api) api.on('select', () => setSelectedHeadline(headlines[api.selectedScrollSnap()]));
+                              }}
+                              className="w-full"
+                            >
+                              <CarouselContent>
+                                {headlines.map((headline, index) => (
+                                  <CarouselItem key={index} className="md:basis-1/2 lg:basis-full">
+                                    <div className="p-1">
+                                      <Card className={`h-40 flex flex-col justify-center p-6 border-2 transition-colors cursor-pointer ${selectedHeadline?.title === headline.title ? 'border-primary shadow-lg' : 'hover:border-primary/50'}`}>
+                                        <p className="font-body font-bold text-lg">{headline.title}</p>
+                                        <p className="font-body text-sm text-muted-foreground mt-2">{headline.source}</p>
+                                      </Card>
+                                    </div>
+                                  </CarouselItem>
+                                ))}
+                              </CarouselContent>
+                              <CarouselPrevious className="hidden sm:flex" />
+                              <CarouselNext className="hidden sm:flex" />
+                            </Carousel>
+                          )}
+                          <Button onClick={loadHeadlines} className="mt-4 w-full" variant="secondary" disabled={isLoading}>
+                            <RefreshCw className={`mr-2 h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
+                            {isLoading ? 'Fetching News...' : 'Refresh News'}
+                          </Button>
+                        </CardContent>
+                    </Card>
+                </TabsContent>
+                <TabsContent value="url" className="mt-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="imageUrl">Image URL</Label>
+                    <Input id="imageUrl" type="url" placeholder="https://example.com/image.png" value={imageUrl} onChange={e => setImageUrl(e.target.value)} />
+                    {imageUrl && <div className="p-2 border rounded-md"><Image src={imageUrl} alt="URL Preview" width={100} height={100} className="rounded-md object-cover" /></div>}
+                  </div>
+                </TabsContent>
+                <TabsContent value="upload" className="mt-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="localFile">Upload Image</Label>
+                    <Input id="localFile" type="file" accept="image/*" onChange={handleFileChange} ref={fileInputRef} className="cursor-pointer" />
+                    {localFilePreview && <div className="p-2 border rounded-md"><Image src={localFilePreview} alt="File Preview" width={100} height={100} className="rounded-md object-cover" /></div>}
+                  </div>
+                </TabsContent>
+              </Tabs>
             </CardContent>
           </Card>
           <Card>
@@ -236,13 +305,12 @@ export function PageClient() {
               <CardTitle className="font-headline text-2xl">2. Choose a tone</CardTitle>
             </CardHeader>
             <CardContent>
-              <RadioGroup defaultValue="funny" onValueChange={(value: string) => setTone(value as MemeTone)} className="flex justify-center flex-wrap gap-2">
+              <RadioGroup value={tone} onValueChange={(value: string) => setTone(value as MemeTone)} className="flex justify-center flex-wrap gap-2">
                 <div className="flex space-x-2 rounded-full bg-muted p-1">
                   {[
                     { value: 'funny', label: 'Funny', icon: <Laugh className="w-4 h-4 mr-2"/> },
                     { value: 'sarcastic', label: 'Sarcastic', icon: <MessageCircleHeart className="w-4 h-4 mr-2"/> },
                     { value: 'inspirational', label: 'Inspirational', icon: <Sparkles className="w-4 h-4 mr-2"/> },
-                    { value: 'whimsical', label: 'Whimsical', icon: <Wand2 className="w-4 h-4 mr-2"/> },
                   ].map(item => (
                     <div key={item.value}>
                       <RadioGroupItem value={item.value} id={item.value} className="peer sr-only" />
@@ -255,15 +323,19 @@ export function PageClient() {
               </RadioGroup>
             </CardContent>
           </Card>
+           <Button onClick={handleGenerateMeme} size="lg" className="w-full font-bold text-lg animate-pulsating-glow" disabled={isGenerating}>
+              <Sparkles className="mr-2" />
+              {isGenerating ? 'Generating...' : 'Generate Meme'}
+           </Button>
         </div>
         <div className="mt-8 lg:mt-0" ref={memeDisplayRef}>
-          <Card className="sticky top-8">
+          <Card className="sticky top-8 shadow-xl">
             <CardHeader>
               <CardTitle className="font-headline text-2xl">3. Your Meme</CardTitle>
               <CardDescription className="font-body">Here's your AI-generated meme. Download and share it!</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="aspect-video bg-muted rounded-lg flex items-center justify-center relative overflow-hidden">
+              <div className="aspect-video bg-muted rounded-lg flex items-center justify-center relative overflow-hidden border">
                 {isGenerating && <Loader />}
                 {!isGenerating && generatedMeme && (
                   <div id="meme-to-download" className="w-full h-full animate-fade-in-zoom">
@@ -283,6 +355,7 @@ export function PageClient() {
                 )}
                 {!isGenerating && !generatedMeme && (
                   <div className="text-center p-8 font-body text-muted-foreground">
+                    <ImageIcon className="mx-auto h-12 w-12 text-muted-foreground/50 mb-4"/>
                     <p>Your meme will appear here.</p>
                   </div>
                 )}
