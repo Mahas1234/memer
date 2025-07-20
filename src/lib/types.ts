@@ -13,8 +13,19 @@ export interface Meme {
   aiHint: string;
 }
 
+export interface MemeStoryPanel {
+    imageUrl: string;
+    caption: string;
+    imagePrompt: string;
+}
+
+export interface MemeStory {
+    id: string;
+    title: string;
+    panels: MemeStoryPanel[];
+    createdAt: string;
+}
+
 export type MemeTone = "funny" | "sarcastic" | "inspirational" | "whimsical";
 
-export type MemeInputType = "headline" | "url" | "upload" | "custom" | "ai-image";
-
-    
+export type MemeInputType = "headline" | "url" | "upload" | "custom" | "ai-image" | "remove-bg" | "story" | "mood";

@@ -1,9 +1,12 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import type { NewsHeadline, Meme, MemeTone, MemeInputType } from '@/lib/types';
+import type { NewsHeadline, Meme, MemeTone, MemeInputType, MemeStory } from '@/lib/types';
 import { generateMemeCaption } from '@/ai/flows/generate-meme-caption';
 import { generateImageFromText, generateHashtags } from '@/ai/flows/meme-tools';
+import { removeImageBackground } from '@/ai/flows/remove-background';
+import { generateMemeStory } from '@/ai/flows/generate-story';
+import { generateMoodMeme } from '@/ai/flows/mood-meme';
 import { fetchTrendingHeadlines } from '@/lib/news-api';
 import { getRandomMemeTemplate } from '@/lib/meme-templates';
 import { Button } from '@/components/ui/button';
@@ -15,12 +18,13 @@ import { useToast } from '@/hooks/use-toast';
 import { ShareButtons } from '@/components/share-buttons';
 import { MemeCard } from '@/components/meme-card';
 import { Loader } from '@/components/loader';
-import { Download, Laugh, RefreshCw, Sparkles, MessageCircleHeart, Image as ImageIcon, Link, Upload, Newspaper, Wand2, FileInput, Bot, Tags } from 'lucide-react';
+import { Download, Laugh, RefreshCw, Sparkles, MessageCircleHeart, Image as ImageIcon, Link, Upload, Newspaper, Wand2, FileInput, Bot, Tags, Camera, Smile, Eraser, Film } from 'lucide-react';
 import Image from 'next/image';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Input } from '@/components/ui/input';
 import { ThemeToggle } from '@/components/theme-toggle';
 import { Textarea } from './ui/textarea';
+import { Alert, AlertDescription, AlertTitle } from './ui/alert';
 
 const WavyText = ({ text }: { text: string }) => (
   <h1 className="text-4xl md:text-5xl font-headline font-bold text-primary tracking-tighter">
@@ -38,6 +42,7 @@ export function PageClient() {
   const [selectedHeadline, setSelectedHeadline] = useState<NewsHeadline | null>(null);
   const [tone, setTone] = useState<MemeTone>('funny');
   const [generatedMeme, setGeneratedMeme] = useState<Meme | null>(null);
+  const [generatedStory, setGeneratedStory] = useState<MemeStory | null>(null);
   const [memeHistory, setMemeHistory] = useState<Meme[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isGenerating, setIsGenerating] = useState(false);
@@ -49,11 +54,45 @@ export function PageClient() {
   const [aiImagePrompt, setAiImagePrompt] = useState('');
   const [localFile, setLocalFile] = useState<File | null>(null);
   const [localFilePreview, setLocalFilePreview] = useState<string | null>(null);
-  
+  const [storyPrompt, setStoryPrompt] = useState('');
+  const [hasCameraPermission, setHasCameraPermission] = useState<boolean | null>(null);
 
   const { toast } = useToast();
   const memeDisplayRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
+
+
+  useEffect(() => {
+    if (inputType === 'mood') {
+        const getCameraPermission = async () => {
+          try {
+            const stream = await navigator.mediaDevices.getUserMedia({video: true});
+            setHasCameraPermission(true);
+
+            if (videoRef.current) {
+              videoRef.current.srcObject = stream;
+            }
+          } catch (error) {
+            console.error('Error accessing camera:', error);
+            setHasCameraPermission(false);
+            toast({
+              variant: 'destructive',
+              title: 'Camera Access Denied',
+              description: 'Please enable camera permissions in your browser settings to use this app.',
+            });
+          }
+        };
+        getCameraPermission();
+    } else {
+        // Stop camera stream when not in mood tab
+        if(videoRef.current && videoRef.current.srcObject) {
+            const stream = videoRef.current.srcObject as MediaStream;
+            stream.getTracks().forEach(track => track.stop());
+            videoRef.current.srcObject = null;
+        }
+    }
+  }, [inputType, toast]);
 
   const loadHeadlines = useCallback(async () => {
     setIsLoading(true);
@@ -85,6 +124,7 @@ export function PageClient() {
   const handleGenerateMeme = useCallback(async (options?: { surprise?: boolean }) => {
     setIsGenerating(true);
     setGeneratedMeme(null);
+    setGeneratedStory(null);
     setGeneratedHashtags(null);
 
     let context: string | null = null;
@@ -134,6 +174,65 @@ export function PageClient() {
             if(!localFile || !localFilePreview) throw new Error('Please upload an image file.');
             context = "an uploaded image";
             baseImageUrl = localFilePreview;
+        } else if (inputType === 'remove-bg') {
+            if(!localFile || !localFilePreview) throw new Error('Please upload an image file to remove the background.');
+            headlineText = "Background Removed";
+            const { imageWithBackgroundRemovedDataUri } = await removeImageBackground({imageDataUri: localFilePreview});
+            context = "image with background removed";
+            baseImageUrl = imageWithBackgroundRemovedDataUri;
+        } else if (inputType === 'story') {
+            if (!storyPrompt) throw new Error('Please enter a story prompt.');
+            headlineText = `Story: ${storyPrompt}`;
+            const storyResult = await generateMemeStory({prompt: storyPrompt});
+            
+            // For now, we will generate images for the story sequentially.
+            const storyPanels = [];
+            for (const panel of storyResult.panels) {
+                const { imageUrl } = await generateImageFromText({prompt: panel.imagePrompt});
+                storyPanels.push({ ...panel, imageUrl });
+            }
+
+            const newStory : MemeStory = {
+                id: new Date().toISOString(),
+                title: storyResult.title,
+                panels: storyPanels,
+                createdAt: new Date().toISOString(),
+            };
+            setGeneratedStory(newStory);
+            setIsGenerating(false);
+            return;
+        } else if (inputType === 'mood') {
+            if (!hasCameraPermission || !videoRef.current) throw new Error('Camera not available or permission denied.');
+            const canvas = document.createElement('canvas');
+            canvas.width = videoRef.current.videoWidth;
+            canvas.height = videoRef.current.videoHeight;
+            const ctx = canvas.getContext('2d');
+            ctx?.drawImage(videoRef.current, 0, 0, canvas.width, canvas.height);
+            const photoDataUri = canvas.toDataURL('image/jpeg');
+            
+            const moodResult = await generateMoodMeme({photoDataUri});
+            const { imageUrl } = await generateImageFromText({prompt: moodResult.imagePrompt});
+
+            context = `Mood: ${moodResult.mood}`;
+            headlineText = `User looking ${moodResult.mood}`;
+            baseImageUrl = imageUrl;
+            aiHint = moodResult.imagePrompt;
+
+            const newMeme: Meme = {
+                id: new Date().toISOString(),
+                imageUrl: baseImageUrl,
+                caption: moodResult.caption,
+                headline: headlineText,
+                createdAt: new Date().toISOString(),
+                aiHint,
+            };
+            setGeneratedMeme(newMeme);
+
+            const updatedHistory = [newMeme, ...memeHistory].slice(0, 12);
+            setMemeHistory(updatedHistory);
+            localStorage.setItem('memeHistory', JSON.stringify(updatedHistory));
+            setIsGenerating(false);
+            return;
         }
 
         if (!context || !baseImageUrl) return;
@@ -162,7 +261,7 @@ export function PageClient() {
     } finally {
         setIsGenerating(false);
     }
-  }, [selectedHeadline, tone, memeHistory, toast, inputType, imageUrl, localFile, localFilePreview, customHeadline, headlines, aiImagePrompt]);
+  }, [selectedHeadline, tone, memeHistory, toast, inputType, imageUrl, localFile, localFilePreview, customHeadline, headlines, aiImagePrompt, storyPrompt, hasCameraPermission]);
   
   const handleGenerateHashtags = useCallback(async () => {
     if (!generatedMeme) return;
@@ -267,6 +366,8 @@ export function PageClient() {
     };
   };
 
+  const isAdvancedFeature = ['remove-bg', 'story', 'mood'].includes(inputType);
+
   return (
     <div className="container mx-auto px-4 py-8">
       <header className="text-center mb-8 md:mb-12 relative">
@@ -286,11 +387,16 @@ export function PageClient() {
             <CardContent>
               <Tabs value={inputType} onValueChange={(value) => setInputType(value as MemeInputType)} className="w-full">
                 <TabsList className="grid w-full grid-cols-5">
-                  <TabsTrigger value="headline"><Newspaper className="mr-2 h-4 w-4" />Headline</TabsTrigger>
-                  <TabsTrigger value="custom"><FileInput className="mr-2 h-4 w-4" />Custom</TabsTrigger>
-                  <TabsTrigger value="ai-image"><Bot className="mr-2 h-4 w-4" />AI Image</TabsTrigger>
-                  <TabsTrigger value="url"><Link className="mr-2 h-4 w-4" />URL</TabsTrigger>
-                  <TabsTrigger value="upload"><Upload className="mr-2 h-4 w-4" />Upload</TabsTrigger>
+                  <TabsTrigger value="headline" className="text-xs"><Newspaper className="mr-1 h-4 w-4" />Headline</TabsTrigger>
+                  <TabsTrigger value="custom" className="text-xs"><FileInput className="mr-1 h-4 w-4" />Custom</TabsTrigger>
+                  <TabsTrigger value="ai-image" className="text-xs"><Bot className="mr-1 h-4 w-4" />AI Image</TabsTrigger>
+                  <TabsTrigger value="upload" className="text-xs"><Upload className="mr-1 h-4 w-4" />Upload</TabsTrigger>
+                  <TabsTrigger value="url" className="text-xs"><Link className="mr-1 h-4 w-4" />URL</TabsTrigger>
+                </TabsList>
+                 <TabsList className="grid w-full grid-cols-3 mt-2">
+                  <TabsTrigger value="remove-bg" className="text-xs"><Eraser className="mr-1 h-4 w-4" />Remove BG</TabsTrigger>
+                  <TabsTrigger value="story" className="text-xs"><Film className="mr-1 h-4 w-4" />Story</TabsTrigger>
+                  <TabsTrigger value="mood" className="text-xs"><Smile className="mr-1 h-4 w-4" />Mood</TabsTrigger>
                 </TabsList>
                 <TabsContent value="headline" className="mt-4">
                     <Card className="border-dashed">
@@ -349,20 +455,52 @@ export function PageClient() {
                   <div className="space-y-2">
                     <Label htmlFor="imageUrl">Image URL</Label>
                     <Input id="imageUrl" type="url" placeholder="https://example.com/image.png" value={imageUrl} onChange={e => setImageUrl(e.target.value)} />
-                    {imageUrl && <div className="p-2 border rounded-md"><Image src={imageUrl} alt="URL Preview" width={100} height={100} className="rounded-md object-cover" /></div>}
+                    {imageUrl && <div className="p-2 border rounded-md"><Image src={imageUrl} alt="URL Preview" width={100} height={100} className="rounded-md object-cover" data-ai-hint="custom image"/></div>}
                   </div>
                 </TabsContent>
                 <TabsContent value="upload" className="mt-4">
                   <div className="space-y-2">
                     <Label htmlFor="localFile">Upload Image</Label>
                     <Input id="localFile" type="file" accept="image/*" onChange={handleFileChange} ref={fileInputRef} className="cursor-pointer" />
-                    {localFilePreview && <div className="p-2 border rounded-md"><Image src={localFilePreview} alt="File Preview" width={100} height={100} className="rounded-md object-cover" /></div>}
+                    {localFilePreview && <div className="p-2 border rounded-md"><Image src={localFilePreview} alt="File Preview" width={100} height={100} className="rounded-md object-cover" data-ai-hint="custom upload"/></div>}
+                  </div>
+                </TabsContent>
+                 <TabsContent value="remove-bg" className="mt-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="localFileBg">Upload Image for Background Removal</Label>
+                    <Input id="localFileBg" type="file" accept="image/*" onChange={handleFileChange} className="cursor-pointer" />
+                    {localFilePreview && <div className="p-2 border rounded-md"><Image src={localFilePreview} alt="File Preview" width={100} height={100} className="rounded-md object-cover" data-ai-hint="custom upload"/></div>}
+                     <p className="text-xs text-muted-foreground">Upload an image and the AI will attempt to remove the background.</p>
+                  </div>
+                </TabsContent>
+                <TabsContent value="story" className="mt-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="storyPrompt">Meme Story Prompt</Label>
+                    <Textarea id="storyPrompt" placeholder="e.g., A dog trying to order a pizza." value={storyPrompt} onChange={e => setStoryPrompt(e.target.value)} />
+                    <p className="text-xs text-muted-foreground">The AI will generate a 3-panel meme story with images and captions.</p>
+                  </div>
+                </TabsContent>
+                <TabsContent value="mood" className="mt-4">
+                  <div className="space-y-4">
+                    <p className="text-sm text-center text-muted-foreground">Let the AI detect your mood and create a meme just for you!</p>
+                    <div className="relative w-full aspect-video bg-muted rounded-lg flex items-center justify-center overflow-hidden border">
+                       <video ref={videoRef} className="w-full aspect-video rounded-md" autoPlay muted playsInline />
+                       {hasCameraPermission === false && (
+                         <Alert variant="destructive" className="m-4">
+                            <Camera className="h-4 w-4" />
+                            <AlertTitle>Camera Access Required</AlertTitle>
+                            <AlertDescription>
+                                Please allow camera access in your browser to use this feature.
+                            </AlertDescription>
+                         </Alert>
+                       )}
+                    </div>
                   </div>
                 </TabsContent>
               </Tabs>
             </CardContent>
           </Card>
-          <Card>
+          <Card className={isAdvancedFeature ? 'hidden' : 'block'}>
             <CardHeader>
               <CardTitle className="font-headline text-2xl">2. Choose a tone</CardTitle>
             </CardHeader>
@@ -400,12 +538,44 @@ export function PageClient() {
         <div className="mt-8 lg:mt-0" ref={memeDisplayRef}>
           <Card className="sticky top-8 shadow-xl">
             <CardHeader>
-              <CardTitle className="font-headline text-2xl">3. Your Meme</CardTitle>
-              <CardDescription className="font-body">Here's your AI-generated meme. Download and share it!</CardDescription>
+              <CardTitle className="font-headline text-2xl">3. Your Creation</CardTitle>
+              <CardDescription className="font-body">Here's your AI-generated masterpiece. Download and share it!</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="aspect-video bg-muted rounded-lg flex items-center justify-center relative overflow-hidden border">
-                {isGenerating && <Loader text={inputType === 'ai-image' ? 'Generating AI Image...' : 'Generating your meme...'} />}
+                {isGenerating && <Loader text={
+                    inputType === 'ai-image' ? 'Generating AI Image...' : 
+                    inputType === 'story' ? 'Generating meme story...' :
+                    inputType === 'mood' ? 'Analyzing mood & generating...' :
+                    inputType === 'remove-bg' ? 'Removing background...' :
+                    'Generating your meme...'
+                } />}
+
+                {!isGenerating && generatedStory && (
+                   <Carousel className="w-full h-full">
+                        <CarouselContent>
+                            {generatedStory.panels.map((panel, index) => (
+                                <CarouselItem key={index} className="w-full h-full relative">
+                                    <Image 
+                                        src={panel.imageUrl}
+                                        alt={panel.caption}
+                                        fill
+                                        className="object-contain"
+                                        data-ai-hint="story panel"
+                                    />
+                                    <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent p-4">
+                                        <p className="font-impact text-white uppercase text-xl md:text-2xl text-center [text-shadow:2px_2px_0_#000,-2px_-2px_0_#000,2px_-2px_0_#000,-2px_2px_0_#000,2px_0_0_#000,-2px_0_0_#000,0_2px_0_#000,0_-2px_0_#000] drop-shadow-lg leading-tight">
+                                            {panel.caption}
+                                        </p>
+                                    </div>
+                                </CarouselItem>
+                            ))}
+                        </CarouselContent>
+                        <CarouselPrevious className="left-2" />
+                        <CarouselNext className="right-2" />
+                   </Carousel>
+                )}
+
                 {!isGenerating && generatedMeme && (
                   <div id="meme-to-download" className="w-full h-full animate-fade-in-zoom">
                      <Image 
@@ -422,10 +592,10 @@ export function PageClient() {
                       </div>
                   </div>
                 )}
-                {!isGenerating && !generatedMeme && (
+                {!isGenerating && !generatedMeme && !generatedStory && (
                   <div className="text-center p-8 font-body text-muted-foreground">
                     <ImageIcon className="mx-auto h-12 w-12 text-muted-foreground/50 mb-4"/>
-                    <p>Your meme will appear here.</p>
+                    <p>Your creation will appear here.</p>
                   </div>
                 )}
               </div>
@@ -474,5 +644,3 @@ export function PageClient() {
     </div>
   );
 }
-
-    
