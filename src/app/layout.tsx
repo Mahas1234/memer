@@ -5,7 +5,7 @@ import { Toaster } from "@/components/ui/toaster"
 import { ThemeProvider } from '@/components/theme-provider';
 
 export const metadata: Metadata = {
-  title: 'memer.dev',
+  title: 'memers.dev',
   description: 'Generate memes from news headlines or your own images with AI',
 };
 

@@ -376,7 +376,7 @@ export function PageClient() {
       }
 
       const link = document.createElement('a');
-      link.download = `memer-dev-${Date.now()}.png`;
+      link.download = `memers-dev-${Date.now()}.png`;
       link.href = canvas.toDataURL('image/png');
       document.body.appendChild(link);
       link.click();
@@ -395,7 +395,7 @@ export function PageClient() {
         <div className="absolute top-0 right-0">
           <ThemeToggle />
         </div>
-        <WavyText text="memer.dev" />
+        <WavyText text="memers.dev" />
         <p className="font-body text-lg text-muted-foreground mt-2">Generate memes with the power of AI.</p>
       </header>
       
