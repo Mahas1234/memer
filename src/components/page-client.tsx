@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -19,7 +20,7 @@ import { useToast } from '@/hooks/use-toast';
 import { ShareButtons } from '@/components/share-buttons';
 import { MemeCard } from '@/components/meme-card';
 import { Loader } from '@/components/loader';
-import { Download, Laugh, RefreshCw, Sparkles, MessageCircleHeart, Image as ImageIcon, Link, Upload, Newspaper, Wand2, FileInput, Bot, Tags, Camera, Smile, Eraser, Film, Type, PencilRuler } from 'lucide-react';
+import { Download, Laugh, RefreshCw, Sparkles, MessageCircleHeart, Image as ImageIcon, Link, Upload, Newspaper, Wand2, FileInput, Bot, Tags, Camera, Smile, Eraser, Film, Type, PencilRuler, UserCircle, LogOut } from 'lucide-react';
 import Image from 'next/image';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Input } from '@/components/ui/input';
@@ -27,6 +28,12 @@ import { ThemeToggle } from '@/components/theme-toggle';
 import { Textarea } from './ui/textarea';
 import { Alert, AlertDescription, AlertTitle } from './ui/alert';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { useAuth } from '@/hooks/use-auth';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from './ui/dialog';
+import { AuthForm } from './auth-form';
+import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from './ui/dropdown-menu';
+
 
 const WavyText = ({ text }: { text: string }) => (
   <h1 className="text-4xl md:text-5xl font-headline font-bold text-primary tracking-tighter">
@@ -73,12 +80,20 @@ export function PageClient() {
   const [storyPrompt, setStoryPrompt] = useState('');
   const [hasCameraPermission, setHasCameraPermission] = useState<boolean | null>(null);
   const [font, setFont] = useState<MemeFont>('Impact');
+  const [authDialogOpen, setAuthDialogOpen] = useState(false);
 
+  const { user, loading, signOut } = useAuth();
   const { toast } = useToast();
   const memeDisplayRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
 
+  useEffect(() => {
+    // When user logs in, close the dialog
+    if (user) {
+      setAuthDialogOpen(false);
+    }
+  }, [user]);
 
   useEffect(() => {
     if (inputType === 'mood') {
@@ -129,6 +144,7 @@ export function PageClient() {
   useEffect(() => {
     loadHeadlines();
     try {
+      // Logic for loading user-specific memes will go here
       const storedMemes = localStorage.getItem('memeHistory');
       if (storedMemes) {
         setMemeHistory(JSON.parse(storedMemes));
@@ -136,7 +152,7 @@ export function PageClient() {
     } catch (error) {
       console.error("Could not load memes from local storage.", error)
     }
-  }, [loadHeadlines]);
+  }, [loadHeadlines, user]);
 
   const handleGenerateMeme = useCallback(async (options?: { surprise?: boolean }) => {
     setIsGenerating(true);
@@ -388,11 +404,54 @@ export function PageClient() {
   };
 
   const isAdvancedFeature = ['remove-bg', 'story', 'mood'].includes(inputType);
+  
+  const renderAuthButton = () => {
+    if (loading) {
+      return <Button variant="outline" size="sm" disabled>Loading...</Button>;
+    }
+
+    if (user) {
+      return (
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" className="p-0 rounded-full">
+               <Avatar className="h-9 w-9">
+                  <AvatarImage src={user.photoURL || undefined} alt={user.displayName || user.email || 'user'} />
+                  <AvatarFallback>{user.email?.[0].toUpperCase() || 'U'}</AvatarFallback>
+                </Avatar>
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem disabled>{user.email}</DropdownMenuItem>
+            <DropdownMenuItem onClick={signOut}>
+              <LogOut className="mr-2 h-4 w-4" />
+              <span>Log out</span>
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      );
+    }
+    
+    return (
+       <Dialog open={authDialogOpen} onOpenChange={setAuthDialogOpen}>
+          <DialogTrigger asChild>
+            <Button variant="outline" className="font-bold">Login / Sign Up</Button>
+          </DialogTrigger>
+          <DialogContent className="sm:max-w-[425px]">
+            <DialogHeader>
+              <DialogTitle className="text-center text-2xl font-headline">Welcome to memers.dev</DialogTitle>
+            </DialogHeader>
+            <AuthForm />
+          </DialogContent>
+        </Dialog>
+    )
+  }
 
   return (
     <div className="container mx-auto px-4 py-8">
       <header className="text-center mb-8 md:mb-12 relative">
-        <div className="absolute top-0 right-0">
+        <div className="absolute top-0 right-0 flex items-center gap-2">
+          {renderAuthButton()}
           <ThemeToggle />
         </div>
         <WavyText text="memers.dev" />
@@ -409,7 +468,6 @@ export function PageClient() {
               <Tabs value={inputType} onValueChange={(value) => {
                   const newType = value as MemeInputType;
                   setInputType(newType);
-                  // Hide advanced features for now
                   if (['remove-bg', 'story', 'mood'].includes(newType)) {
                       setInputType('headline');
                        toast({ title: 'Coming Soon!', description: 'This feature is under construction.' });
@@ -715,3 +773,4 @@ export function PageClient() {
       </footer>
     </div>
   );
+}
