@@ -15,4 +15,6 @@ export interface Meme {
 
 export type MemeTone = "funny" | "sarcastic" | "inspirational" | "whimsical";
 
-export type MemeInputType = "headline" | "url" | "upload" | "custom";
+export type MemeInputType = "headline" | "url" | "upload" | "custom" | "ai-image";
+
+    

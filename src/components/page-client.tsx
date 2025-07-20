@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { NewsHeadline, Meme, MemeTone, MemeInputType } from '@/lib/types';
 import { generateMemeCaption } from '@/ai/flows/generate-meme-caption';
+import { generateImageFromText, generateHashtags } from '@/ai/flows/meme-tools';
 import { fetchTrendingHeadlines } from '@/lib/news-api';
 import { getRandomMemeTemplate } from '@/lib/meme-templates';
 import { Button } from '@/components/ui/button';
@@ -14,7 +15,7 @@ import { useToast } from '@/hooks/use-toast';
 import { ShareButtons } from '@/components/share-buttons';
 import { MemeCard } from '@/components/meme-card';
 import { Loader } from '@/components/loader';
-import { Download, Laugh, RefreshCw, Sparkles, MessageCircleHeart, Image as ImageIcon, Link, Upload, Newspaper, Wand2, FileInput } from 'lucide-react';
+import { Download, Laugh, RefreshCw, Sparkles, MessageCircleHeart, Image as ImageIcon, Link, Upload, Newspaper, Wand2, FileInput, Bot, Tags } from 'lucide-react';
 import Image from 'next/image';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Input } from '@/components/ui/input';
@@ -40,11 +41,15 @@ export function PageClient() {
   const [memeHistory, setMemeHistory] = useState<Meme[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [isGeneratingHashtags, setIsGeneratingHashtags] = useState(false);
+  const [generatedHashtags, setGeneratedHashtags] = useState<string | null>(null);
   const [inputType, setInputType] = useState<MemeInputType>('headline');
   const [imageUrl, setImageUrl] = useState('');
   const [customHeadline, setCustomHeadline] = useState('');
+  const [aiImagePrompt, setAiImagePrompt] = useState('');
   const [localFile, setLocalFile] = useState<File | null>(null);
   const [localFilePreview, setLocalFilePreview] = useState<string | null>(null);
+  
 
   const { toast } = useToast();
   const memeDisplayRef = useRef<HTMLDivElement>(null);
@@ -78,89 +83,102 @@ export function PageClient() {
   }, [loadHeadlines]);
 
   const handleGenerateMeme = useCallback(async (options?: { surprise?: boolean }) => {
+    setIsGenerating(true);
+    setGeneratedMeme(null);
+    setGeneratedHashtags(null);
+
     let context: string | null = null;
     let baseImageUrl: string | null = null;
-    let headlineText: string = "User-provided image";
+    let headlineText: string = "User-provided content";
     let aiHint = 'custom image';
     let currentTone = tone;
 
-    if (options?.surprise) {
-      const randomHeadline = headlines[Math.floor(Math.random() * headlines.length)];
-      context = randomHeadline.title;
-      headlineText = randomHeadline.title;
-      const template = getRandomMemeTemplate();
-      baseImageUrl = template.url;
-      aiHint = template.hint;
-      const tones: MemeTone[] = ['funny', 'sarcastic', 'inspirational', 'whimsical'];
-      currentTone = tones[Math.floor(Math.random() * tones.length)];
-      setTone(currentTone);
-    } else if (inputType === 'headline') {
-      if (!selectedHeadline) {
-        toast({ variant: 'destructive', title: 'Error', description: 'Please select a headline first.' });
-        return;
-      }
-      context = selectedHeadline.title;
-      headlineText = selectedHeadline.title;
-      const template = getRandomMemeTemplate();
-      baseImageUrl = template.url;
-      aiHint = template.hint;
-    } else if (inputType === 'custom') {
-      if (!customHeadline) {
-        toast({ variant: 'destructive', title: 'Error', description: 'Please enter a custom headline.' });
-        return;
-      }
-      context = customHeadline;
-      headlineText = customHeadline;
-      const template = getRandomMemeTemplate();
-      baseImageUrl = template.url;
-      aiHint = template.hint;
-    } else if (inputType === 'url') {
-      if (!imageUrl || !imageUrl.startsWith('http')) {
-        toast({ variant: 'destructive', title: 'Error', description: 'Please enter a valid image URL.'});
-        return;
-      }
-      context = "an image provided by URL";
-      baseImageUrl = imageUrl;
-    } else if (inputType === 'upload') {
-        if(!localFile || !localFilePreview) {
-            toast({ variant: 'destructive', title: 'Error', description: 'Please upload an image file.'});
-            return;
-        }
-        context = "an uploaded image";
-        baseImageUrl = localFilePreview;
-    }
-
-    if (!context || !baseImageUrl) return;
-
-    setIsGenerating(true);
-    setGeneratedMeme(null);
-
     try {
-      const result = await generateMemeCaption({ context, tone: currentTone });
-      const newMeme: Meme = {
-        id: new Date().toISOString(),
-        imageUrl: baseImageUrl,
-        caption: result.caption,
-        headline: headlineText,
-        createdAt: new Date().toISOString(),
-        aiHint,
-      };
-      setGeneratedMeme(newMeme);
+        if (options?.surprise) {
+            const randomHeadline = headlines[Math.floor(Math.random() * headlines.length)];
+            context = randomHeadline.title;
+            headlineText = randomHeadline.title;
+            const template = getRandomMemeTemplate();
+            baseImageUrl = template.url;
+            aiHint = template.hint;
+            const tones: MemeTone[] = ['funny', 'sarcastic', 'inspirational', 'whimsical'];
+            currentTone = tones[Math.floor(Math.random() * tones.length)];
+            setTone(currentTone);
+        } else if (inputType === 'headline') {
+            if (!selectedHeadline) throw new Error('Please select a headline first.');
+            context = selectedHeadline.title;
+            headlineText = selectedHeadline.title;
+            const template = getRandomMemeTemplate();
+            baseImageUrl = template.url;
+            aiHint = template.hint;
+        } else if (inputType === 'custom') {
+            if (!customHeadline) throw new Error('Please enter a custom headline.');
+            context = customHeadline;
+            headlineText = customHeadline;
+            const template = getRandomMemeTemplate();
+            baseImageUrl = template.url;
+            aiHint = template.hint;
+        } else if (inputType === 'ai-image') {
+            if (!aiImagePrompt) throw new Error('Please enter a prompt for the AI image.');
+            context = aiImagePrompt;
+            headlineText = `AI Image: ${aiImagePrompt}`;
+            aiHint = aiImagePrompt;
+            const {imageUrl} = await generateImageFromText({prompt: aiImagePrompt});
+            if(!imageUrl) throw new Error('The AI failed to generate an image. Please try again.');
+            baseImageUrl = imageUrl;
+        } else if (inputType === 'url') {
+            if (!imageUrl || !imageUrl.startsWith('http')) throw new Error('Please enter a valid image URL.');
+            context = "an image provided by URL";
+            baseImageUrl = imageUrl;
+        } else if (inputType === 'upload') {
+            if(!localFile || !localFilePreview) throw new Error('Please upload an image file.');
+            context = "an uploaded image";
+            baseImageUrl = localFilePreview;
+        }
 
-      const updatedHistory = [newMeme, ...memeHistory].slice(0, 12); // Keep last 12
-      setMemeHistory(updatedHistory);
-      localStorage.setItem('memeHistory', JSON.stringify(updatedHistory));
-      
-      setTimeout(() => {
-         memeDisplayRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      }, 100);
+        if (!context || !baseImageUrl) return;
 
-    } catch (error) {
-      toast({ variant: 'destructive', title: 'AI Error', description: 'Could not generate meme caption.' });
+        const result = await generateMemeCaption({ context, tone: currentTone });
+        const newMeme: Meme = {
+            id: new Date().toISOString(),
+            imageUrl: baseImageUrl,
+            caption: result.caption,
+            headline: headlineText,
+            createdAt: new Date().toISOString(),
+            aiHint,
+        };
+        setGeneratedMeme(newMeme);
+
+        const updatedHistory = [newMeme, ...memeHistory].slice(0, 12); // Keep last 12
+        setMemeHistory(updatedHistory);
+        localStorage.setItem('memeHistory', JSON.stringify(updatedHistory));
+        
+        setTimeout(() => {
+            memeDisplayRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }, 100);
+
+    } catch (error: any) {
+        toast({ variant: 'destructive', title: 'Error', description: error.message || 'An unexpected error occurred.' });
     } finally {
-      setIsGenerating(false);
+        setIsGenerating(false);
     }
-  }, [selectedHeadline, tone, memeHistory, toast, inputType, imageUrl, localFile, localFilePreview, customHeadline, headlines]);
+  }, [selectedHeadline, tone, memeHistory, toast, inputType, imageUrl, localFile, localFilePreview, customHeadline, headlines, aiImagePrompt]);
+  
+  const handleGenerateHashtags = useCallback(async () => {
+    if (!generatedMeme) return;
+    setIsGeneratingHashtags(true);
+    try {
+      const result = await generateHashtags({
+        caption: generatedMeme.caption,
+        context: generatedMeme.headline,
+      });
+      setGeneratedHashtags(result.hashtags.join(' '));
+    } catch (error) {
+      toast({ variant: 'destructive', title: 'Hashtag Error', description: 'Could not generate hashtags.' });
+    } finally {
+      setIsGeneratingHashtags(false);
+    }
+  }, [generatedMeme, toast]);
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -267,9 +285,10 @@ export function PageClient() {
             </CardHeader>
             <CardContent>
               <Tabs value={inputType} onValueChange={(value) => setInputType(value as MemeInputType)} className="w-full">
-                <TabsList className="grid w-full grid-cols-4">
+                <TabsList className="grid w-full grid-cols-5">
                   <TabsTrigger value="headline"><Newspaper className="mr-2 h-4 w-4" />Headline</TabsTrigger>
                   <TabsTrigger value="custom"><FileInput className="mr-2 h-4 w-4" />Custom</TabsTrigger>
+                  <TabsTrigger value="ai-image"><Bot className="mr-2 h-4 w-4" />AI Image</TabsTrigger>
                   <TabsTrigger value="url"><Link className="mr-2 h-4 w-4" />URL</TabsTrigger>
                   <TabsTrigger value="upload"><Upload className="mr-2 h-4 w-4" />Upload</TabsTrigger>
                 </TabsList>
@@ -317,6 +336,13 @@ export function PageClient() {
                     <Label htmlFor="customHeadline">Custom Headline</Label>
                     <Textarea id="customHeadline" placeholder="e.g., Man discovers his cat is a wanted jewel thief" value={customHeadline} onChange={e => setCustomHeadline(e.target.value)} />
                     <p className="text-xs text-muted-foreground">The AI will generate a meme from a random template based on your text.</p>
+                  </div>
+                </TabsContent>
+                 <TabsContent value="ai-image" className="mt-4">
+                   <div className="space-y-2">
+                    <Label htmlFor="aiImagePrompt">AI Image Prompt</Label>
+                    <Textarea id="aiImagePrompt" placeholder="e.g., A photo of a cat programmer wearing glasses, working on a laptop" value={aiImagePrompt} onChange={e => setAiImagePrompt(e.target.value)} />
+                    <p className="text-xs text-muted-foreground">The AI will generate a unique image to use as the meme background based on your prompt.</p>
                   </div>
                 </TabsContent>
                 <TabsContent value="url" className="mt-4">
@@ -379,7 +405,7 @@ export function PageClient() {
             </CardHeader>
             <CardContent>
               <div className="aspect-video bg-muted rounded-lg flex items-center justify-center relative overflow-hidden border">
-                {isGenerating && <Loader />}
+                {isGenerating && <Loader text={inputType === 'ai-image' ? 'Generating AI Image...' : 'Generating your meme...'} />}
                 {!isGenerating && generatedMeme && (
                   <div id="meme-to-download" className="w-full h-full animate-fade-in-zoom">
                      <Image 
@@ -404,12 +430,26 @@ export function PageClient() {
                 )}
               </div>
               {generatedMeme && !isGenerating && (
-                <div className="mt-4 flex flex-col sm:flex-row gap-2 animate-fade-in-zoom">
-                   <Button onClick={handleDownload} className="w-full bounce-on-tap">
-                    <Download className="mr-2 h-4 w-4" />
-                    Download
-                  </Button>
-                  <ShareButtons text={`Check out this meme I made: "${generatedMeme.caption}"`} />
+                <div className="mt-4 flex flex-col gap-2 animate-fade-in-zoom">
+                    <div className="flex flex-col sm:flex-row gap-2">
+                       <Button onClick={handleDownload} className="w-full bounce-on-tap">
+                        <Download className="mr-2 h-4 w-4" />
+                        Download
+                      </Button>
+                      <ShareButtons text={`Check out this meme I made: "${generatedMeme.caption}"`} />
+                   </div>
+                   <Button onClick={handleGenerateHashtags} className="w-full" variant="outline" disabled={isGeneratingHashtags}>
+                        <Tags className={`mr-2 h-4 w-4 ${isGeneratingHashtags ? 'animate-spin' : ''}`} />
+                        {isGeneratingHashtags ? 'Generating...' : 'Generate Hashtags'}
+                   </Button>
+                   {generatedHashtags && (
+                      <div className="p-3 bg-muted rounded-lg text-sm text-muted-foreground font-mono break-words animate-fade-in-zoom cursor-pointer" onClick={() => {
+                        navigator.clipboard.writeText(generatedHashtags)
+                        toast({ title: 'Hashtags Copied!' })
+                      }}>
+                        {generatedHashtags}
+                      </div>
+                   )}
                 </div>
               )}
             </CardContent>
@@ -434,3 +474,5 @@ export function PageClient() {
     </div>
   );
 }
+
+    
