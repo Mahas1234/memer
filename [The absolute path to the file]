@@ -1,0 +1,1 @@
+The entire, final content of the file.
