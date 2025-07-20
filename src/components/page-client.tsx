@@ -55,6 +55,10 @@ const toneOptions: { value: MemeTone, label: string, icon: string }[] = [
   { value: 'whimsical', label: 'Whimsical', icon: '🤪' }
 ];
 
+const isImageUrl = (url: string) => {
+    return /\.(jpg|jpeg|png|webp|avif|gif|svg)$/.test(url);
+};
+
 export function PageClient() {
   const [headlines, setHeadlines] = useState<NewsHeadline[]>([]);
   const [selectedHeadline, setSelectedHeadline] = useState<NewsHeadline | null>(null);
@@ -485,7 +489,7 @@ export function PageClient() {
                   <div className="space-y-2">
                     <Label htmlFor="imageUrl">Image URL</Label>
                     <Input id="imageUrl" type="url" placeholder="https://example.com/image.png" value={imageUrl} onChange={e => setImageUrl(e.target.value)} />
-                    {imageUrl && <div className="p-2 border rounded-md"><Image src={imageUrl} alt="URL Preview" width={100} height={100} className="rounded-md object-cover" data-ai-hint="custom image"/></div>}
+                    {imageUrl && isImageUrl(imageUrl) && <div className="p-2 border rounded-md"><Image src={imageUrl} alt="URL Preview" width={100} height={100} className="rounded-md object-cover" data-ai-hint="custom image"/></div>}
                   </div>
                 </TabsContent>
                 <TabsContent value="upload" className="mt-4">
@@ -715,3 +719,5 @@ export function PageClient() {
     </div>
   );
 }
+
+    
