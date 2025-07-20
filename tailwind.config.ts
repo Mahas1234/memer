@@ -1,4 +1,5 @@
 import type {Config} from 'tailwindcss';
+const plugin = require('tailwindcss/plugin');
 
 export default {
   darkMode: ['class'],
@@ -10,8 +11,9 @@ export default {
   theme: {
     extend: {
       fontFamily: {
-        body: ['Inter', 'sans-serif'],
-        headline: ['Inter', 'sans-serif'],
+        body: ['"PT Sans"', 'sans-serif'],
+        headline: ['"Poppins"', 'sans-serif'],
+        impact: ['Impact', 'Haettenschweiler', '"Arial Narrow Bold"', 'sans-serif'],
         code: ['monospace'],
       },
       colors: {
@@ -88,10 +90,34 @@ export default {
             height: '0',
           },
         },
+        'pulsating-glow': {
+          '0%, 100%': { boxShadow: '0 0 10px 0px hsl(var(--primary) / 0.7)' },
+          '50%': { boxShadow: '0 0 20px 5px hsl(var(--primary) / 0.3)' },
+        },
+        'fade-in-zoom': {
+          '0%': { opacity: '0', transform: 'scale(0.95)' },
+          '100%': { opacity: '1', transform: 'scale(1)' },
+        },
+        'fade-slide-up': {
+            '0%': { opacity: '0', transform: 'translateY(20px)' },
+            '100%': { opacity: '1', 'transform': 'translateY(0)' },
+        },
+        'wavy': {
+            '0%': { transform: 'translateY(0px)' },
+            '20%': { transform: 'translateY(-4px)' },
+            '40%': { transform: 'translateY(2px)' },
+            '60%': { transform: 'translateY(-1px)' },
+            '80%': { transform: 'translateY(1px)' },
+            '100%': { transform: 'translateY(0px)' },
+        }
       },
       animation: {
         'accordion-down': 'accordion-down 0.2s ease-out',
         'accordion-up': 'accordion-up 0.2s ease-out',
+        'pulsating-glow': 'pulsating-glow 2s ease-in-out infinite',
+        'fade-in-zoom': 'fade-in-zoom 0.5s ease-out forwards',
+        'fade-slide-up': 'fade-slide-up 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards',
+        'wavy': 'wavy 1s ease-in-out infinite'
       },
     },
   },
