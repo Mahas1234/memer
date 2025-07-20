@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -18,7 +19,7 @@ import { useToast } from '@/hooks/use-toast';
 import { ShareButtons } from '@/components/share-buttons';
 import { MemeCard } from '@/components/meme-card';
 import { Loader } from '@/components/loader';
-import { Download, Laugh, RefreshCw, Sparkles, MessageCircleHeart, Image as ImageIcon, Link, Upload, Newspaper, Wand2, FileInput, Bot, Tags, Camera, Smile, Eraser, Film, Type } from 'lucide-react';
+import { Download, Laugh, RefreshCw, Sparkles, MessageCircleHeart, Image as ImageIcon, Link, Upload, Newspaper, Wand2, FileInput, Bot, Tags, Camera, Smile, Eraser, Film, Type, PencilRuler } from 'lucide-react';
 import Image from 'next/image';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Input } from '@/components/ui/input';
@@ -396,10 +397,18 @@ export function PageClient() {
         <div className="space-y-8">
           <Card>
             <CardHeader>
-              <CardTitle className="font-headline text-2xl">1. Choose your source</CardTitle>
+              <CardTitle className="font-headline text-2xl flex items-center gap-2"><PencilRuler />1. Choose your source</CardTitle>
             </CardHeader>
             <CardContent>
-              <Tabs value={inputType} onValueChange={(value) => setInputType(value as MemeInputType)} className="w-full">
+              <Tabs value={inputType} onValueChange={(value) => {
+                  const newType = value as MemeInputType;
+                  setInputType(newType);
+                  // Hide advanced features for now
+                  if (['remove-bg', 'story', 'mood'].includes(newType)) {
+                      setInputType('headline');
+                       toast({ title: 'Coming Soon!', description: 'This feature is under construction.' });
+                  }
+              }} className="w-full">
                 <TabsList className="grid w-full grid-cols-5">
                   <TabsTrigger value="headline" className="text-xs"><Newspaper className="mr-1 h-4 w-4" />Headline</TabsTrigger>
                   <TabsTrigger value="custom" className="text-xs"><FileInput className="mr-1 h-4 w-4" />Custom</TabsTrigger>
@@ -407,11 +416,13 @@ export function PageClient() {
                   <TabsTrigger value="upload" className="text-xs"><Upload className="mr-1 h-4 w-4" />Upload</TabsTrigger>
                   <TabsTrigger value="url" className="text-xs"><Link className="mr-1 h-4 w-4" />URL</TabsTrigger>
                 </TabsList>
+                {/* 
                  <TabsList className="grid w-full grid-cols-3 mt-2">
                   <TabsTrigger value="remove-bg" className="text-xs"><Eraser className="mr-1 h-4 w-4" />Remove BG</TabsTrigger>
                   <TabsTrigger value="story" className="text-xs"><Film className="mr-1 h-4 w-4" />Story</TabsTrigger>
                   <TabsTrigger value="mood" className="text-xs"><Smile className="mr-1 h-4 w-4" />Mood</TabsTrigger>
                 </TabsList>
+                */}
                 <TabsContent value="headline" className="mt-4">
                     <Card className="border-dashed">
                         <CardHeader>
@@ -514,24 +525,24 @@ export function PageClient() {
               </Tabs>
             </CardContent>
           </Card>
-          <div className={isAdvancedFeature ? 'grid grid-cols-1 gap-8' : 'grid grid-cols-2 gap-8'}>
-            <Card className={isAdvancedFeature ? 'hidden' : 'block'}>
+          <div className="grid grid-cols-2 gap-8">
+            <Card>
               <CardHeader>
-                <CardTitle className="font-headline text-2xl">2. Choose a tone</CardTitle>
+                <CardTitle className="font-headline text-2xl flex items-center gap-2"><Sparkles />2. Choose a tone</CardTitle>
               </CardHeader>
               <CardContent>
                 <RadioGroup value={tone} onValueChange={(value: string) => setTone(value as MemeTone)} className="flex justify-center flex-wrap gap-2">
                   <div className="flex space-x-2 rounded-full bg-muted p-1">
                     {[
-                      { value: 'funny', label: 'Funny', icon: <Laugh className="w-4 h-4 mr-2"/> },
-                      { value: 'sarcastic', label: 'Sarcastic', icon: <MessageCircleHeart className="w-4 h-4 mr-2"/> },
-                      { value: 'inspirational', label: 'Inspirational', icon: <Sparkles className="w-4 h-4 mr-2"/> },
-                      { value: 'whimsical', label: 'Whimsical', icon: <Wand2 className="w-4 h-4 mr-2"/> }
+                      { value: 'funny', label: '😂 Funny', icon: <></> },
+                      { value: 'sarcastic', label: '😏 Sarcastic', icon: <></> },
+                      { value: 'inspirational', label: '✨ Inspirational', icon: <></> },
+                      { value: 'whimsical', label: '🤪 Whimsical', icon: <></> }
                     ].map(item => (
                       <div key={item.value}>
                         <RadioGroupItem value={item.value} id={item.value} className="peer sr-only" />
                         <Label htmlFor={item.value} className="flex items-center justify-center font-body cursor-pointer rounded-full px-4 py-2 text-sm transition-colors peer-data-[state=checked]:bg-primary peer-data-[state=checked]:text-primary-foreground peer-data-[state=unchecked]:hover:bg-muted-foreground/10">
-                          {item.icon}{item.label}
+                          {item.label}
                         </Label>
                       </div>
                     ))}
@@ -539,15 +550,14 @@ export function PageClient() {
                 </RadioGroup>
               </CardContent>
             </Card>
-            <Card className={isAdvancedFeature ? 'hidden' : 'block'}>
+            <Card>
                 <CardHeader>
-                    <CardTitle className="font-headline text-2xl">3. Select a Font</CardTitle>
+                    <CardTitle className="font-headline text-2xl flex items-center gap-2"><Type />3. Select a Font</CardTitle>
                 </CardHeader>
                 <CardContent>
                     <Select value={font} onValueChange={(value) => setFont(value as MemeFont)}>
                         <SelectTrigger className="w-full">
                             <div className="flex items-center gap-2">
-                                <Type className="w-4 h-4" />
                                 <SelectValue placeholder="Select a font" />
                             </div>
                         </SelectTrigger>
