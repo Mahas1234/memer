@@ -4,6 +4,8 @@ export interface NewsHeadline {
   source: string;
 }
 
+export type MemeFont = 'Impact' | 'Anton' | 'Lobster' | 'Comic Neue';
+
 export interface Meme {
   id: string;
   imageUrl: string;
@@ -11,6 +13,7 @@ export interface Meme {
   headline: string; // Context, could be headline or "user image"
   createdAt: string;
   aiHint: string;
+  font: MemeFont;
 }
 
 export interface MemeStoryPanel {

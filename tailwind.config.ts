@@ -14,6 +14,9 @@ export default {
         body: ['"PT Sans"', 'sans-serif'],
         headline: ['"Poppins"', 'sans-serif'],
         impact: ['Impact', 'Haettenschweiler', '"Arial Narrow Bold"', 'sans-serif'],
+        anton: ['"Anton"', 'sans-serif'],
+        lobster: ['"Lobster"', 'cursive'],
+        'comic-neue': ['"Comic Neue"', 'cursive'],
         code: ['monospace'],
       },
       colors: {

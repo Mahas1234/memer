@@ -18,13 +18,14 @@ import { useToast } from '@/hooks/use-toast';
 import { ShareButtons } from '@/components/share-buttons';
 import { MemeCard } from '@/components/meme-card';
 import { Loader } from '@/components/loader';
-import { Download, Laugh, RefreshCw, Sparkles, MessageCircleHeart, Image as ImageIcon, Link, Upload, Newspaper, Wand2, FileInput, Bot, Tags, Camera, Smile, Eraser, Film } from 'lucide-react';
+import { Download, Laugh, RefreshCw, Sparkles, MessageCircleHeart, Image as ImageIcon, Link, Upload, Newspaper, Wand2, FileInput, Bot, Tags, Camera, Smile, Eraser, Film, Type } from 'lucide-react';
 import Image from 'next/image';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Input } from '@/components/ui/input';
 import { ThemeToggle } from '@/components/theme-toggle';
 import { Textarea } from './ui/textarea';
 import { Alert, AlertDescription, AlertTitle } from './ui/alert';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 const WavyText = ({ text }: { text: string }) => (
   <h1 className="text-4xl md:text-5xl font-headline font-bold text-primary tracking-tighter">
@@ -35,6 +36,14 @@ const WavyText = ({ text }: { text: string }) => (
     ))}
   </h1>
 );
+
+type MemeFont = 'Impact' | 'Anton' | 'Lobster' | 'Comic Neue';
+const fontOptions: { value: MemeFont, label: string, className: string, style: string }[] = [
+    { value: 'Impact', label: 'Impact', className: 'font-impact', style: 'Impact, Haettenschweiler, "Arial Narrow Bold", sans-serif' },
+    { value: 'Anton', label: 'Anton', className: 'font-anton', style: '"Anton", sans-serif' },
+    { value: 'Lobster', label: 'Lobster', className: 'font-lobster', style: '"Lobster", cursive' },
+    { value: 'Comic Neue', label: 'Comic Neue', className: 'font-comic-neue', style: '"Comic Neue", cursive' },
+];
 
 
 export function PageClient() {
@@ -56,6 +65,7 @@ export function PageClient() {
   const [localFilePreview, setLocalFilePreview] = useState<string | null>(null);
   const [storyPrompt, setStoryPrompt] = useState('');
   const [hasCameraPermission, setHasCameraPermission] = useState<boolean | null>(null);
+  const [font, setFont] = useState<MemeFont>('Impact');
 
   const { toast } = useToast();
   const memeDisplayRef = useRef<HTMLDivElement>(null);
@@ -225,6 +235,7 @@ export function PageClient() {
                 headline: headlineText,
                 createdAt: new Date().toISOString(),
                 aiHint,
+                font: font,
             };
             setGeneratedMeme(newMeme);
 
@@ -245,6 +256,7 @@ export function PageClient() {
             headline: headlineText,
             createdAt: new Date().toISOString(),
             aiHint,
+            font: font,
         };
         setGeneratedMeme(newMeme);
 
@@ -261,7 +273,7 @@ export function PageClient() {
     } finally {
         setIsGenerating(false);
     }
-  }, [selectedHeadline, tone, memeHistory, toast, inputType, imageUrl, localFile, localFilePreview, customHeadline, headlines, aiImagePrompt, storyPrompt, hasCameraPermission]);
+  }, [selectedHeadline, tone, memeHistory, toast, inputType, imageUrl, localFile, localFilePreview, customHeadline, headlines, aiImagePrompt, storyPrompt, hasCameraPermission, font]);
   
   const handleGenerateHashtags = useCallback(async () => {
     if (!generatedMeme) return;
@@ -299,6 +311,8 @@ export function PageClient() {
     const captionElement = memeNode.querySelector('p');
 
     if (!imgElement || !captionElement) return;
+    
+    const selectedFont = fontOptions.find(f => f.value === font) || fontOptions[0];
 
     const img = document.createElement('img');
     img.crossOrigin = 'anonymous';
@@ -316,7 +330,7 @@ export function PageClient() {
       ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
 
       const fontSize = canvas.width / 14;
-      ctx.font = `bold ${fontSize}px Impact, Haettenschweiler, "Arial Narrow Bold", sans-serif`;
+      ctx.font = `bold ${fontSize}px ${selectedFont.style}`;
       ctx.fillStyle = 'white';
       ctx.strokeStyle = 'black';
       ctx.lineWidth = fontSize / 20;
@@ -500,30 +514,54 @@ export function PageClient() {
               </Tabs>
             </CardContent>
           </Card>
-          <Card className={isAdvancedFeature ? 'hidden' : 'block'}>
-            <CardHeader>
-              <CardTitle className="font-headline text-2xl">2. Choose a tone</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <RadioGroup value={tone} onValueChange={(value: string) => setTone(value as MemeTone)} className="flex justify-center flex-wrap gap-2">
-                <div className="flex space-x-2 rounded-full bg-muted p-1">
-                  {[
-                    { value: 'funny', label: 'Funny', icon: <Laugh className="w-4 h-4 mr-2"/> },
-                    { value: 'sarcastic', label: 'Sarcastic', icon: <MessageCircleHeart className="w-4 h-4 mr-2"/> },
-                    { value: 'inspirational', label: 'Inspirational', icon: <Sparkles className="w-4 h-4 mr-2"/> },
-                    { value: 'whimsical', label: 'Whimsical', icon: <Wand2 className="w-4 h-4 mr-2"/> }
-                  ].map(item => (
-                    <div key={item.value}>
-                      <RadioGroupItem value={item.value} id={item.value} className="peer sr-only" />
-                      <Label htmlFor={item.value} className="flex items-center justify-center font-body cursor-pointer rounded-full px-4 py-2 text-sm transition-colors peer-data-[state=checked]:bg-primary peer-data-[state=checked]:text-primary-foreground peer-data-[state=unchecked]:hover:bg-muted-foreground/10">
-                        {item.icon}{item.label}
-                      </Label>
-                    </div>
-                  ))}
-                </div>
-              </RadioGroup>
-            </CardContent>
-          </Card>
+          <div className={isAdvancedFeature ? 'grid grid-cols-1 gap-8' : 'grid grid-cols-2 gap-8'}>
+            <Card className={isAdvancedFeature ? 'hidden' : 'block'}>
+              <CardHeader>
+                <CardTitle className="font-headline text-2xl">2. Choose a tone</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <RadioGroup value={tone} onValueChange={(value: string) => setTone(value as MemeTone)} className="flex justify-center flex-wrap gap-2">
+                  <div className="flex space-x-2 rounded-full bg-muted p-1">
+                    {[
+                      { value: 'funny', label: 'Funny', icon: <Laugh className="w-4 h-4 mr-2"/> },
+                      { value: 'sarcastic', label: 'Sarcastic', icon: <MessageCircleHeart className="w-4 h-4 mr-2"/> },
+                      { value: 'inspirational', label: 'Inspirational', icon: <Sparkles className="w-4 h-4 mr-2"/> },
+                      { value: 'whimsical', label: 'Whimsical', icon: <Wand2 className="w-4 h-4 mr-2"/> }
+                    ].map(item => (
+                      <div key={item.value}>
+                        <RadioGroupItem value={item.value} id={item.value} className="peer sr-only" />
+                        <Label htmlFor={item.value} className="flex items-center justify-center font-body cursor-pointer rounded-full px-4 py-2 text-sm transition-colors peer-data-[state=checked]:bg-primary peer-data-[state=checked]:text-primary-foreground peer-data-[state=unchecked]:hover:bg-muted-foreground/10">
+                          {item.icon}{item.label}
+                        </Label>
+                      </div>
+                    ))}
+                  </div>
+                </RadioGroup>
+              </CardContent>
+            </Card>
+            <Card className={isAdvancedFeature ? 'hidden' : 'block'}>
+                <CardHeader>
+                    <CardTitle className="font-headline text-2xl">3. Select a Font</CardTitle>
+                </CardHeader>
+                <CardContent>
+                    <Select value={font} onValueChange={(value) => setFont(value as MemeFont)}>
+                        <SelectTrigger className="w-full">
+                            <div className="flex items-center gap-2">
+                                <Type className="w-4 h-4" />
+                                <SelectValue placeholder="Select a font" />
+                            </div>
+                        </SelectTrigger>
+                        <SelectContent>
+                            {fontOptions.map(option => (
+                                <SelectItem key={option.value} value={option.value}>
+                                    <span className={option.className}>{option.label}</span>
+                                </SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+                </CardContent>
+            </Card>
+          </div>
           <div className="flex flex-col sm:flex-row gap-4">
             <Button onClick={() => handleGenerateMeme()} size="lg" className="w-full font-bold text-lg animate-pulsating-glow" disabled={isGenerating}>
                 <Sparkles className="mr-2" />
@@ -538,7 +576,7 @@ export function PageClient() {
         <div className="mt-8 lg:mt-0" ref={memeDisplayRef}>
           <Card className="sticky top-8 shadow-xl">
             <CardHeader>
-              <CardTitle className="font-headline text-2xl">3. Your Creation</CardTitle>
+              <CardTitle className="font-headline text-2xl">Your Creation</CardTitle>
               <CardDescription className="font-body">Here's your AI-generated masterpiece. Download and share it!</CardDescription>
             </CardHeader>
             <CardContent>
@@ -586,7 +624,7 @@ export function PageClient() {
                         data-ai-hint={generatedMeme.aiHint}
                       />
                       <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent p-4 flex flex-col justify-end">
-                        <p className="font-impact text-white uppercase text-2xl md:text-4xl text-center [text-shadow:2px_2px_0_#000,-2px_-2px_0_#000,2px_-2px_0_#000,-2px_2px_0_#000,2px_0_0_#000,-2px_0_0_#000,0_2px_0_#000,0_-2px_0_#000] drop-shadow-lg leading-tight">
+                        <p className={`${fontOptions.find(f => f.value === generatedMeme.font)?.className || 'font-impact'} text-white uppercase text-2xl md:text-4xl text-center [text-shadow:2px_2px_0_#000,-2px_-2px_0_#000,2px_-2px_0_#000,-2px_2px_0_#000,2px_0_0_#000,-2px_0_0_#000,0_2px_0_#000,0_-2px_0_#000] drop-shadow-lg leading-tight`}>
                           {generatedMeme.caption}
                         </p>
                       </div>
