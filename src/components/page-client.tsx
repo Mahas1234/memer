@@ -439,7 +439,7 @@ export function PageClient() {
                           {!isLoading && headlines.length > 0 && (
                             <Carousel
                               opts={{ align: 'start' }}
-                              onApi={(api: any) => {
+                              setApi={(api: any) => {
                                 if(api) api.on('select', () => setSelectedHeadline(headlines[api.selectedScrollSnap()]));
                               }}
                               className="w-full"
@@ -542,7 +542,7 @@ export function PageClient() {
                     align: 'center',
                     loop: true,
                   }}
-                  onApi={(api: any) => {
+                  setApi={(api: any) => {
                     if (api) {
                       api.on('select', () => {
                         const selectedTone = toneOptions[api.selectedScrollSnap()].value;
@@ -715,4 +715,3 @@ export function PageClient() {
       </footer>
     </div>
   );
-}
