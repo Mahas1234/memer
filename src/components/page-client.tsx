@@ -46,6 +46,12 @@ const fontOptions: { value: MemeFont, label: string, className: string, style: s
     { value: 'Comic Neue', label: 'Comic Neue', className: 'font-comic-neue', style: '"Comic Neue", cursive' },
 ];
 
+const toneOptions: { value: MemeTone, label: string, icon: string }[] = [
+  { value: 'funny', label: 'Funny', icon: '😂' },
+  { value: 'sarcastic', label: 'Sarcastic', icon: '😏' },
+  { value: 'inspirational', label: 'Inspirational', icon: '✨' },
+  { value: 'whimsical', label: 'Whimsical', icon: '🤪' }
+];
 
 export function PageClient() {
   const [headlines, setHeadlines] = useState<NewsHeadline[]>([]);
@@ -433,7 +439,7 @@ export function PageClient() {
                           {!isLoading && headlines.length > 0 && (
                             <Carousel
                               opts={{ align: 'start' }}
-                              setApi={(api: any) => {
+                              onApi={(api: any) => {
                                 if(api) api.on('select', () => setSelectedHeadline(headlines[api.selectedScrollSnap()]));
                               }}
                               className="w-full"
@@ -531,23 +537,41 @@ export function PageClient() {
                 <CardTitle className="font-headline text-2xl flex items-center gap-2"><Sparkles />2. Choose a tone</CardTitle>
               </CardHeader>
               <CardContent>
-                <RadioGroup value={tone} onValueChange={(value: string) => setTone(value as MemeTone)} className="flex justify-center flex-wrap gap-2">
-                  <div className="flex space-x-2 rounded-full bg-muted p-1">
-                    {[
-                      { value: 'funny', label: '😂 Funny', icon: <></> },
-                      { value: 'sarcastic', label: '😏 Sarcastic', icon: <></> },
-                      { value: 'inspirational', label: '✨ Inspirational', icon: <></> },
-                      { value: 'whimsical', label: '🤪 Whimsical', icon: <></> }
-                    ].map(item => (
-                      <div key={item.value}>
-                        <RadioGroupItem value={item.value} id={item.value} className="peer sr-only" />
-                        <Label htmlFor={item.value} className="flex items-center justify-center font-body cursor-pointer rounded-full px-4 py-2 text-sm transition-colors peer-data-[state=checked]:bg-primary peer-data-[state=checked]:text-primary-foreground peer-data-[state=unchecked]:hover:bg-muted-foreground/10">
-                          {item.label}
-                        </Label>
-                      </div>
-                    ))}
-                  </div>
-                </RadioGroup>
+                <Carousel 
+                  opts={{
+                    align: 'center',
+                    loop: true,
+                  }}
+                  onApi={(api: any) => {
+                    if (api) {
+                      api.on('select', () => {
+                        const selectedTone = toneOptions[api.selectedScrollSnap()].value;
+                        setTone(selectedTone);
+                      });
+                    }
+                  }}
+                  className="w-full max-w-xs mx-auto"
+                >
+                    <CarouselContent>
+                      {toneOptions.map(({ value, label, icon }) => (
+                        <CarouselItem key={value} className="basis-1/2">
+                          <div className="p-1">
+                            <Card 
+                              className={`cursor-pointer transition-all ${tone === value ? 'bg-primary text-primary-foreground shadow-lg scale-105' : 'bg-muted/50 hover:bg-muted'}`}
+                              onClick={() => setTone(value)}
+                            >
+                              <CardContent className="flex flex-col items-center justify-center gap-2 p-6 aspect-square">
+                                <span className="text-4xl">{icon}</span>
+                                <p className="font-bold">{label}</p>
+                              </CardContent>
+                            </Card>
+                          </div>
+                        </CarouselItem>
+                      ))}
+                    </CarouselContent>
+                  <CarouselPrevious />
+                  <CarouselNext />
+                </Carousel>
               </CardContent>
             </Card>
             <Card>
