@@ -13,4 +13,4 @@ export interface Meme {
   aiHint: string;
 }
 
-export type MemeTone = "funny" | "sarcastic" | "inspirational";
+export type MemeTone = "funny" | "sarcastic" | "inspirational" | "whimsical";

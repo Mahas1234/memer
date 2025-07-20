@@ -14,7 +14,7 @@ import { useToast } from '@/hooks/use-toast';
 import { ShareButtons } from '@/components/share-buttons';
 import { MemeCard } from '@/components/meme-card';
 import { Loader } from '@/components/loader';
-import { Download, Laugh, RefreshCw, Sparkles, MessageCircleHeart } from 'lucide-react';
+import { Download, Laugh, RefreshCw, Sparkles, MessageCircleHeart, Wand2 } from 'lucide-react';
 import Image from 'next/image';
 
 const WavyText = ({ text }: { text: string }) => (
@@ -66,14 +66,7 @@ export function PageClient() {
     }
   }, [loadHeadlines]);
 
-  useEffect(() => {
-    if (selectedHeadline) {
-      handleGenerateMeme();
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedHeadline, tone]);
-  
-  const handleGenerateMeme = async () => {
+  const handleGenerateMeme = useCallback(async () => {
     if (!selectedHeadline) {
       toast({ variant: 'destructive', title: 'Error', description: 'Please select a headline first.' });
       return;
@@ -108,7 +101,15 @@ export function PageClient() {
     } finally {
       setIsGenerating(false);
     }
-  };
+  }, [selectedHeadline, tone, memeHistory, toast]);
+
+  useEffect(() => {
+    if (selectedHeadline) {
+      handleGenerateMeme();
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedHeadline, tone]);
+  
 
   const handleDownload = () => {
     const memeNode = document.getElementById('meme-to-download');
@@ -235,12 +236,13 @@ export function PageClient() {
               <CardTitle className="font-headline text-2xl">2. Choose a tone</CardTitle>
             </CardHeader>
             <CardContent>
-              <RadioGroup defaultValue="funny" onValueChange={(value: string) => setTone(value as MemeTone)} className="flex justify-center">
+              <RadioGroup defaultValue="funny" onValueChange={(value: string) => setTone(value as MemeTone)} className="flex justify-center flex-wrap gap-2">
                 <div className="flex space-x-2 rounded-full bg-muted p-1">
                   {[
                     { value: 'funny', label: 'Funny', icon: <Laugh className="w-4 h-4 mr-2"/> },
                     { value: 'sarcastic', label: 'Sarcastic', icon: <MessageCircleHeart className="w-4 h-4 mr-2"/> },
                     { value: 'inspirational', label: 'Inspirational', icon: <Sparkles className="w-4 h-4 mr-2"/> },
+                    { value: 'whimsical', label: 'Whimsical', icon: <Wand2 className="w-4 h-4 mr-2"/> },
                   ].map(item => (
                     <div key={item.value}>
                       <RadioGroupItem value={item.value} id={item.value} className="peer sr-only" />

@@ -13,7 +13,7 @@ import {z} from 'genkit';
 
 const GenerateMemeCaptionInputSchema = z.object({
   headline: z.string().describe('The news headline to generate a meme caption for.'),
-  tone: z.enum(['funny', 'sarcastic', 'inspirational']).describe('The desired tone of the meme caption.'),
+  tone: z.enum(['funny', 'sarcastic', 'inspirational', 'whimsical']).describe('The desired tone of the meme caption.'),
 });
 export type GenerateMemeCaptionInput = z.infer<typeof GenerateMemeCaptionInputSchema>;
 
