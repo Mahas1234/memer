@@ -126,5 +126,17 @@ export default {
       },
     },
   },
-  plugins: [require('tailwindcss-animate')],
+  plugins: [
+    require('tailwindcss-animate'),
+    plugin(function({ addUtilities } : { addUtilities: any }) {
+      addUtilities({
+        '.bounce-on-tap': {
+          'transition': 'transform 0.1s ease-in-out',
+          '&:active': {
+            'transform': 'scale(0.95)',
+          },
+        },
+      })
+    }),
+  ],
 } satisfies Config;
