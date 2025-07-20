@@ -396,7 +396,7 @@ export function PageClient() {
           <ThemeToggle />
         </div>
         <WavyText text="memers.dev" />
-        <p className="font-body text-lg text-muted-foreground mt-2">Generate memes with the power of AI.</p>
+        <p className="font-body text-lg text-muted-foreground mt-2">The Internet's Unhinged Meme Factory. Now Open.</p>
       </header>
       
       <div className="grid grid-cols-1 lg:grid-cols-2 lg:gap-12">

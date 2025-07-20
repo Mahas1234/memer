@@ -6,7 +6,7 @@ import { ThemeProvider } from '@/components/theme-provider';
 
 export const metadata: Metadata = {
   title: 'memers.dev',
-  description: 'Generate memes from news headlines or your own images with AI',
+  description: 'The Internet\'s Unhinged Meme Factory. Now Open.',
 };
 
 export default function RootLayout({
