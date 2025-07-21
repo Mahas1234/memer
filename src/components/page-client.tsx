@@ -20,7 +20,7 @@ import { useToast } from '@/hooks/use-toast';
 import { ShareButtons } from '@/components/share-buttons';
 import { MemeCard } from '@/components/meme-card';
 import { Loader } from '@/components/loader';
-import { Download, Laugh, RefreshCw, Sparkles, MessageCircleHeart, Image as ImageIcon, Link, Upload, Newspaper, Wand2, FileInput, Bot, Tags, Camera, Smile, Eraser, Film, Type, PencilRuler } from 'lucide-react';
+import { Download, Laugh, RefreshCw, Sparkles, MessageCircleHeart, Image as ImageIcon, Link, Upload, Newspaper, Wand2, FileInput, Bot, Tags, Camera, Smile, Eraser, Film, Type, PencilRuler, Heart, Coffee } from 'lucide-react';
 import Image from 'next/image';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Input } from '@/components/ui/input';
@@ -733,8 +733,36 @@ export function PageClient() {
         </section>
       )}
 
-      <footer className="text-center mt-16 py-6 border-t">
+      <section className="mt-16">
+        <Card className="bg-gradient-to-br from-primary/20 via-background to-background border-2 border-primary/50 shadow-lg">
+          <CardHeader className="text-center">
+            <CardTitle className="font-headline text-3xl flex items-center justify-center gap-2">
+                <Heart className="text-destructive" />
+                Enjoying the App?
+            </CardTitle>
+            <CardDescription className="font-body text-base max-w-prose mx-auto">
+                If memers.dev is bringing a smile to your face, consider supporting its development. A small contribution helps keep the servers running and fuels future updates!
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="flex justify-center">
+             <a href="https://coff.ee/mahas" target="_blank" rel="noopener noreferrer" className="bounce-on-tap">
+                <Button size="lg" className="font-bold text-lg">
+                    <Coffee className="mr-2" />
+                    Buy Me a Coffee
+                </Button>
+             </a>
+          </CardContent>
+        </Card>
+      </section>
+
+      <footer className="text-center mt-16 py-6 border-t space-y-2">
         <p className="text-muted-foreground font-body">Made with vibes by Mahas ❤️</p>
+        <a href="https://coff.ee/mahas" target="_blank" rel="noopener noreferrer" className="text-sm text-muted-foreground hover:text-primary transition-colors">
+            <Button variant="link" size="sm">
+                <Coffee className="mr-2 h-4 w-4"/>
+                Support this project
+            </Button>
+        </a>
       </footer>
     </div>
   );
