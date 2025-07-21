@@ -29,7 +29,6 @@ import { Textarea } from './ui/textarea';
 import { Alert, AlertDescription, AlertTitle } from './ui/alert';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { BuyMeACoffeeDialog } from './buy-me-a-coffee-dialog';
-import { TourGuide } from './tour-guide';
 
 
 const WavyText = ({ text }: { text: string }) => (
@@ -82,7 +81,6 @@ export function PageClient() {
   const [hasCameraPermission, setHasCameraPermission] = useState<boolean | null>(null);
   const [font, setFont] = useState<MemeFont>('Impact');
   const [isCoffeeDialogOpen, setIsCoffeeDialogOpen] = useState(false);
-  const [runTour, setRunTour] = useState(false);
 
 
   const { toast } = useToast();
@@ -100,12 +98,6 @@ export function PageClient() {
     const interval = setInterval(() => {
       setIsCoffeeDialogOpen(true);
     }, 5 * 60 * 1000); // 5 minutes
-
-    const hasSeenTour = localStorage.getItem('hasSeenTour');
-    if (!hasSeenTour) {
-        setRunTour(true);
-        localStorage.setItem('hasSeenTour', 'true');
-    }
 
     return () => {
       clearTimeout(initialTimeout);
@@ -423,14 +415,9 @@ export function PageClient() {
 
   return (
     <div className="container mx-auto px-4 py-8">
-      <TourGuide run={runTour} setRunTour={setRunTour} />
       <BuyMeACoffeeDialog open={isCoffeeDialogOpen} onOpenChange={setIsCoffeeDialogOpen} />
       <header className="text-center mb-8 md:mb-12 relative">
         <div className="absolute top-0 right-0 flex items-center gap-2">
-           <Button variant="ghost" size="sm" onClick={() => setRunTour(true)}>
-            <HelpCircle className="mr-2 h-4 w-4" />
-            Start Tour
-          </Button>
           <ThemeToggle />
         </div>
         <WavyText text="memesgo.info" />
