@@ -28,6 +28,7 @@ import { ThemeToggle } from '@/components/theme-toggle';
 import { Textarea } from './ui/textarea';
 import { Alert, AlertDescription, AlertTitle } from './ui/alert';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { BuyMeACoffeeDialog } from './buy-me-a-coffee-dialog';
 
 
 const WavyText = ({ text }: { text: string }) => (
@@ -79,11 +80,29 @@ export function PageClient() {
   const [storyPrompt, setStoryPrompt] = useState('');
   const [hasCameraPermission, setHasCameraPermission] = useState<boolean | null>(null);
   const [font, setFont] = useState<MemeFont>('Impact');
+  const [isCoffeeDialogOpen, setIsCoffeeDialogOpen] = useState(false);
 
   const { toast } = useToast();
   const memeDisplayRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
+
+  useEffect(() => {
+    // Show initial pop-up after a short delay
+    const initialTimeout = setTimeout(() => {
+      setIsCoffeeDialogOpen(true);
+    }, 2000); // 2 seconds after load
+
+    // Show recurring pop-up every 5 minutes
+    const interval = setInterval(() => {
+      setIsCoffeeDialogOpen(true);
+    }, 5 * 60 * 1000); // 5 minutes
+
+    return () => {
+      clearTimeout(initialTimeout);
+      clearInterval(interval);
+    };
+  }, []);
 
   useEffect(() => {
     if (inputType === 'mood') {
@@ -395,6 +414,7 @@ export function PageClient() {
 
   return (
     <div className="container mx-auto px-4 py-8">
+      <BuyMeACoffeeDialog open={isCoffeeDialogOpen} onOpenChange={setIsCoffeeDialogOpen} />
       <header className="text-center mb-8 md:mb-12 relative">
         <div className="absolute top-0 right-0 flex items-center gap-2">
           <ThemeToggle />
@@ -719,5 +739,3 @@ export function PageClient() {
     </div>
   );
 }
-
-    
