@@ -5,7 +5,7 @@ import { Toaster } from "@/components/ui/toaster"
 import { ThemeProvider } from '@/components/theme-provider';
 
 export const metadata: Metadata = {
-  title: 'memers.dev',
+  title: 'memesgo.info',
   description: 'The Internet\'s Unhinged Meme Factory. Now Open.',
 };
 

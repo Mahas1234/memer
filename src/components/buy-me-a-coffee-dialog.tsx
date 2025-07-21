@@ -28,7 +28,7 @@ export function BuyMeACoffeeDialog({ open, onOpenChange }: BuyMeACoffeeDialogPro
             Like this app?
           </AlertDialogTitle>
           <AlertDialogDescription>
-            If you're enjoying memers.dev, consider supporting its development with a small coffee. It helps keep the servers running and new features coming!
+            If you're enjoying memesgo.info, consider supporting its development with a small coffee. It helps keep the servers running and new features coming!
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>

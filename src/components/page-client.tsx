@@ -401,7 +401,7 @@ export function PageClient() {
       }
 
       const link = document.createElement('a');
-      link.download = `memers-dev-${Date.now()}.png`;
+      link.download = `memesgo-info-${Date.now()}.png`;
       link.href = canvas.toDataURL('image/png');
       document.body.appendChild(link);
       link.click();
@@ -419,7 +419,7 @@ export function PageClient() {
         <div className="absolute top-0 right-0 flex items-center gap-2">
           <ThemeToggle />
         </div>
-        <WavyText text="memers.dev" />
+        <WavyText text="memesgo.info" />
         <p className="font-body text-lg text-muted-foreground mt-2">The Internet's Unhinged Meme Factory. Now Open.</p>
       </header>
       
@@ -741,7 +741,7 @@ export function PageClient() {
                 Enjoying the App?
             </CardTitle>
             <CardDescription className="font-body text-base max-w-prose mx-auto">
-                If memers.dev is bringing a smile to your face, consider supporting its development. A small contribution helps keep the servers running and fuels future updates!
+                If memesgo.info is bringing a smile to your face, consider supporting its development. A small contribution helps keep the servers running and fuels future updates!
             </CardDescription>
           </CardHeader>
           <CardContent className="flex justify-center">

@@ -31,7 +31,7 @@ interface ShareButtonsProps {
 export function ShareButtons({ text }: ShareButtonsProps) {
   const { toast } = useToast();
   const pageUrl = typeof window !== 'undefined' ? window.location.href : '';
-  const shareText = encodeURIComponent(`${text} #memersdev`);
+  const shareText = encodeURIComponent(`${text} #memesgoinfo`);
 
   const shareOptions = [
     { name: 'X', icon: <XIcon />, url: `https://twitter.com/intent/tweet?text=${shareText}&url=${encodeURIComponent(pageUrl)}` },
