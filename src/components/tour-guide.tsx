@@ -1,6 +1,7 @@
+
 "use client";
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import Joyride, { Step, CallBackProps } from 'react-joyride';
 
 interface TourGuideProps {
@@ -9,6 +10,12 @@ interface TourGuideProps {
 }
 
 export function TourGuide({ run, setRunTour }: TourGuideProps) {
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
   const steps: Step[] = [
     {
       target: '#tour-step-1',
@@ -50,6 +57,10 @@ export function TourGuide({ run, setRunTour }: TourGuideProps) {
       setRunTour(false);
     }
   };
+
+  if (!isMounted) {
+    return null;
+  }
 
   return (
     <Joyride
