@@ -112,3 +112,36 @@ body {
     animation: wavy 1.5s ease-in-out infinite;
   }
 }
+
+@layer utilities {
+  .bg-grid {
+    background-image:
+      linear-gradient(to right, hsl(var(--border)) 1px, transparent 1px),
+      linear-gradient(to bottom, hsl(var(--border)) 1px, transparent 1px);
+    background-size: 4rem 4rem;
+  }
+  
+  .animate-float {
+    animation: float 25s ease-in-out infinite;
+  }
+
+  @keyframes float {
+    0% {
+      transform: translateY(0) translateX(0) rotate(0deg);
+      opacity: 0;
+    }
+    10% {
+      opacity: 1;
+    }
+    50% {
+      transform: translateY(-100vh) translateX(20vw) rotate(180deg);
+    }
+    90% {
+        opacity: 1;
+    }
+    100% {
+      transform: translateY(-120vh) translateX(-20vw) rotate(360deg);
+      opacity: 0;
+    }
+  }
+}

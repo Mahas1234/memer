@@ -3,6 +3,7 @@ import './globals.css';
 import { cn } from '@/lib/utils';
 import { Toaster } from "@/components/ui/toaster"
 import { ThemeProvider } from '@/components/theme-provider';
+import { AnimatedBackground } from '@/components/animated-background';
 
 export const metadata: Metadata = {
   title: 'memesgo.info',
@@ -28,7 +29,10 @@ export default function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
-          {children}
+          <AnimatedBackground />
+          <div className="relative z-10">
+            {children}
+          </div>
           <Toaster />
         </ThemeProvider>
       </body>
