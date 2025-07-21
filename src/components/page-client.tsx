@@ -426,7 +426,7 @@ export function PageClient() {
       
       <div className="grid grid-cols-1 lg:grid-cols-2 lg:gap-12">
         <div className="space-y-8">
-          <Card id="tour-step-1">
+          <Card>
             <CardHeader>
               <CardTitle className="font-headline text-2xl flex items-center gap-2"><PencilRuler />1. Choose your source</CardTitle>
             </CardHeader>
@@ -435,8 +435,7 @@ export function PageClient() {
                   const newType = value as MemeInputType;
                   setInputType(newType);
                   if (['remove-bg', 'story', 'mood'].includes(newType)) {
-                      setInputType('headline');
-                       toast({ title: 'Coming Soon!', description: 'This feature is under construction.' });
+                       // Silently allow selection, features are enabled now.
                   }
               }} className="w-full">
                 <TabsList className="grid w-full grid-cols-5">
@@ -446,13 +445,11 @@ export function PageClient() {
                   <TabsTrigger value="upload" className="text-xs"><Upload className="mr-1 h-4 w-4" />Upload</TabsTrigger>
                   <TabsTrigger value="url" className="text-xs"><Link className="mr-1 h-4 w-4" />URL</TabsTrigger>
                 </TabsList>
-                {/* 
                  <TabsList className="grid w-full grid-cols-3 mt-2">
                   <TabsTrigger value="remove-bg" className="text-xs"><Eraser className="mr-1 h-4 w-4" />Remove BG</TabsTrigger>
                   <TabsTrigger value="story" className="text-xs"><Film className="mr-1 h-4 w-4" />Story</TabsTrigger>
                   <TabsTrigger value="mood" className="text-xs"><Smile className="mr-1 h-4 w-4" />Mood</TabsTrigger>
                 </TabsList>
-                */}
                 <TabsContent value="headline" className="mt-4">
                     <Card className="border-dashed">
                         <CardHeader>
@@ -556,7 +553,7 @@ export function PageClient() {
             </CardContent>
           </Card>
           <div className="grid grid-cols-2 gap-8">
-            <Card id="tour-step-2">
+            <Card>
               <CardHeader>
                 <CardTitle className="font-headline text-2xl flex items-center gap-2"><Sparkles />2. Choose a tone</CardTitle>
               </CardHeader>
@@ -598,7 +595,7 @@ export function PageClient() {
                 </Carousel>
               </CardContent>
             </Card>
-            <Card id="tour-step-3">
+            <Card>
                 <CardHeader>
                     <CardTitle className="font-headline text-2xl flex items-center gap-2"><Type />3. Select a Font</CardTitle>
                 </CardHeader>
@@ -620,7 +617,7 @@ export function PageClient() {
                 </CardContent>
             </Card>
           </div>
-          <div className="flex flex-col sm:flex-row gap-4" id="tour-step-4">
+          <div className="flex flex-col sm:flex-row gap-4">
             <Button onClick={() => handleGenerateMeme()} size="lg" className="w-full font-bold text-lg animate-pulsating-glow" disabled={isGenerating}>
                 <Sparkles className="mr-2" />
                 {isGenerating ? 'Generating...' : 'Generate Meme'}
@@ -632,7 +629,7 @@ export function PageClient() {
           </div>
         </div>
         <div className="mt-8 lg:mt-0" ref={memeDisplayRef}>
-          <Card className="sticky top-8 shadow-xl" id="tour-step-5">
+          <Card className="sticky top-8 shadow-xl">
             <CardHeader>
               <CardTitle className="font-headline text-2xl">Your Creation</CardTitle>
               <CardDescription className="font-body">Here's your AI-generated masterpiece. Download and share it!</CardDescription>
@@ -724,7 +721,7 @@ export function PageClient() {
       </div>
 
       {memeHistory.length > 0 && (
-        <section className="mt-16" id="tour-step-6">
+        <section className="mt-16">
           <h2 className="text-3xl font-headline font-bold text-center mb-8">Your Meme Gallery</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
             {memeHistory.map((meme) => (
