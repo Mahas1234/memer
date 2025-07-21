@@ -12,10 +12,10 @@ body {
     --background: 35 100% 97%; /* light-peach */
     --foreground: 20 14% 20%;
 
-    --card: 0 0% 100%;
+    --card: 40 33% 96%; /* cream */
     --card-foreground: 20 14% 20%;
 
-    --popover: 0 0% 100%;
+    --popover: 40 33% 96%; /* cream */
     --popover-foreground: 20 14% 20%;
 
     --primary: 45 95% 55%; /* vibrant-yellow */
