@@ -20,7 +20,7 @@ import { useToast } from '@/hooks/use-toast';
 import { ShareButtons } from '@/components/share-buttons';
 import { MemeCard } from '@/components/meme-card';
 import { Loader } from '@/components/loader';
-import { Download, Laugh, RefreshCw, Sparkles, MessageCircleHeart, Image as ImageIcon, Link, Upload, Newspaper, Wand2, FileInput, Bot, Tags, Camera, Smile, Eraser, Film, Type, PencilRuler, Heart, Coffee } from 'lucide-react';
+import { Download, Laugh, RefreshCw, Sparkles, MessageCircleHeart, Image as ImageIcon, Link, Upload, Newspaper, Wand2, FileInput, Bot, Tags, Camera, Smile, Eraser, Film, Type, PencilRuler, Heart, Coffee, HelpCircle } from 'lucide-react';
 import Image from 'next/image';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Input } from '@/components/ui/input';
@@ -29,6 +29,7 @@ import { Textarea } from './ui/textarea';
 import { Alert, AlertDescription, AlertTitle } from './ui/alert';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { BuyMeACoffeeDialog } from './buy-me-a-coffee-dialog';
+import { TourGuide } from './tour-guide';
 
 
 const WavyText = ({ text }: { text: string }) => (
@@ -81,6 +82,8 @@ export function PageClient() {
   const [hasCameraPermission, setHasCameraPermission] = useState<boolean | null>(null);
   const [font, setFont] = useState<MemeFont>('Impact');
   const [isCoffeeDialogOpen, setIsCoffeeDialogOpen] = useState(false);
+  const [runTour, setRunTour] = useState(false);
+
 
   const { toast } = useToast();
   const memeDisplayRef = useRef<HTMLDivElement>(null);
@@ -97,6 +100,12 @@ export function PageClient() {
     const interval = setInterval(() => {
       setIsCoffeeDialogOpen(true);
     }, 5 * 60 * 1000); // 5 minutes
+
+    const hasSeenTour = localStorage.getItem('hasSeenTour');
+    if (!hasSeenTour) {
+        setRunTour(true);
+        localStorage.setItem('hasSeenTour', 'true');
+    }
 
     return () => {
       clearTimeout(initialTimeout);
@@ -414,9 +423,14 @@ export function PageClient() {
 
   return (
     <div className="container mx-auto px-4 py-8">
+      <TourGuide run={runTour} setRunTour={setRunTour} />
       <BuyMeACoffeeDialog open={isCoffeeDialogOpen} onOpenChange={setIsCoffeeDialogOpen} />
       <header className="text-center mb-8 md:mb-12 relative">
         <div className="absolute top-0 right-0 flex items-center gap-2">
+           <Button variant="ghost" size="sm" onClick={() => setRunTour(true)}>
+            <HelpCircle className="mr-2 h-4 w-4" />
+            Start Tour
+          </Button>
           <ThemeToggle />
         </div>
         <WavyText text="memesgo.info" />
@@ -425,7 +439,7 @@ export function PageClient() {
       
       <div className="grid grid-cols-1 lg:grid-cols-2 lg:gap-12">
         <div className="space-y-8">
-          <Card>
+          <Card id="tour-step-1">
             <CardHeader>
               <CardTitle className="font-headline text-2xl flex items-center gap-2"><PencilRuler />1. Choose your source</CardTitle>
             </CardHeader>
@@ -555,7 +569,7 @@ export function PageClient() {
             </CardContent>
           </Card>
           <div className="grid grid-cols-2 gap-8">
-            <Card>
+            <Card id="tour-step-2">
               <CardHeader>
                 <CardTitle className="font-headline text-2xl flex items-center gap-2"><Sparkles />2. Choose a tone</CardTitle>
               </CardHeader>
@@ -597,7 +611,7 @@ export function PageClient() {
                 </Carousel>
               </CardContent>
             </Card>
-            <Card>
+            <Card id="tour-step-3">
                 <CardHeader>
                     <CardTitle className="font-headline text-2xl flex items-center gap-2"><Type />3. Select a Font</CardTitle>
                 </CardHeader>
@@ -619,7 +633,7 @@ export function PageClient() {
                 </CardContent>
             </Card>
           </div>
-          <div className="flex flex-col sm:flex-row gap-4">
+          <div className="flex flex-col sm:flex-row gap-4" id="tour-step-4">
             <Button onClick={() => handleGenerateMeme()} size="lg" className="w-full font-bold text-lg animate-pulsating-glow" disabled={isGenerating}>
                 <Sparkles className="mr-2" />
                 {isGenerating ? 'Generating...' : 'Generate Meme'}
@@ -631,7 +645,7 @@ export function PageClient() {
           </div>
         </div>
         <div className="mt-8 lg:mt-0" ref={memeDisplayRef}>
-          <Card className="sticky top-8 shadow-xl">
+          <Card className="sticky top-8 shadow-xl" id="tour-step-5">
             <CardHeader>
               <CardTitle className="font-headline text-2xl">Your Creation</CardTitle>
               <CardDescription className="font-body">Here's your AI-generated masterpiece. Download and share it!</CardDescription>
@@ -723,7 +737,7 @@ export function PageClient() {
       </div>
 
       {memeHistory.length > 0 && (
-        <section className="mt-16">
+        <section className="mt-16" id="tour-step-6">
           <h2 className="text-3xl font-headline font-bold text-center mb-8">Your Meme Gallery</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
             {memeHistory.map((meme) => (
